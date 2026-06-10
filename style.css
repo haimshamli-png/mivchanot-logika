@@ -1,0 +1,1219 @@
+/* =====================================================================
+   THEME SYSTEM
+   All visual styling is driven by CSS custom properties.
+   Add a new theme = add a `body[data-theme="..."]` block. Nothing else.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Inter:wght@400;600;700&display=swap');
+
+/* ------- NOSTALGIC THEME (default) — wooden board-game ----------- */
+body[data-theme="nostalgic"] {
+  --font-main: 'Special Elite', 'Courier New', monospace;
+
+  --bg-base: #c8956d;
+  --bg-image:
+    /* soft vignette */
+    radial-gradient(ellipse at center, transparent 30%, rgba(80, 50, 20, 0.35) 100%),
+    /* horizontal grain bands */
+    repeating-linear-gradient(
+      90deg,
+      rgba(120, 75, 40, 0.08) 0px,
+      rgba(120, 75, 40, 0.08) 1px,
+      transparent 1px,
+      transparent 4px,
+      rgba(80, 45, 20, 0.06) 4px,
+      rgba(80, 45, 20, 0.06) 5px,
+      transparent 5px,
+      transparent 11px
+    ),
+    /* longer wood-grain streaks */
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 60px,
+      rgba(60, 30, 10, 0.12) 60px,
+      rgba(60, 30, 10, 0.12) 62px,
+      transparent 62px,
+      transparent 180px
+    ),
+    /* warm base */
+    linear-gradient(180deg, #d4a574 0%, #b8895b 100%);
+
+  --text-color: #3a2415;
+  --text-accent: #6b2a14;
+  --text-muted: rgba(58, 36, 21, 0.7);
+
+  --panel-bg: rgba(245, 222, 179, 0.55);
+  --panel-border: rgba(101, 67, 33, 0.4);
+  --panel-shadow: 0 4px 10px rgba(60, 30, 10, 0.25), inset 0 1px 0 rgba(255, 240, 200, 0.5);
+
+  --card-bg: #f4e4c1;
+  --card-border: rgba(120, 80, 40, 0.6);
+  --card-shadow: 0 6px 18px rgba(60, 30, 10, 0.35), 0 2px 4px rgba(60, 30, 10, 0.2);
+  --card-rotation: -1.8deg;
+
+  --tube-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.18) 100%);
+  --tube-border: rgba(255, 255, 255, 0.6);
+  --tube-shadow:
+    inset 2px 0 4px rgba(255, 255, 255, 0.4),
+    inset -2px 0 4px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(60, 30, 10, 0.3);
+  --tube-radius: 0 0 28px 28px;
+  --tube-selected-glow: 0 0 16px rgba(220, 180, 60, 0.7), 0 0 4px rgba(255, 230, 130, 0.9);
+  --tube-selected-border: #d4a02c;
+
+  --ball-R: radial-gradient(circle at 30% 28%, #d97870 0%, #b54a3e 60%, #8a2e22 100%);
+  --ball-G: radial-gradient(circle at 30% 28%, #9bb073 0%, #7a8b4f 60%, #4f5d2a 100%);
+  --ball-B: radial-gradient(circle at 30% 28%, #80a0c0 0%, #5b7b9a 60%, #3a5470 100%);
+  --ball-Y: radial-gradient(circle at 30% 28%, #e8c878 0%, #c4a04a 60%, #8a6e1a 100%);
+  --rim-R: #b54a3e;
+  --rim-G: #7a8b4f;
+  --rim-B: #5b7b9a;
+  --rim-Y: #c4a04a;
+  --ball-shadow:
+    inset -3px -3px 6px rgba(0, 0, 0, 0.35),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.25),
+    0 2px 4px rgba(60, 30, 10, 0.4);
+
+  --btn-bg: linear-gradient(180deg, #b8895b, #8b6332);
+  --btn-bg-hover: linear-gradient(180deg, #c89e6b, #9b7342);
+  --btn-color: #f4e4c1;
+  --btn-border: rgba(60, 30, 10, 0.5);
+  --btn-shadow: 0 3px 6px rgba(60, 30, 10, 0.35), inset 0 1px 0 rgba(255, 230, 180, 0.4);
+
+  --btn-primary-bg: linear-gradient(180deg, #6b8e3d, #4a6428);
+  --btn-primary-bg-hover: linear-gradient(180deg, #7da047, #5a7430);
+
+  --overlay-bg: rgba(60, 30, 10, 0.75);
+  --overlay-content-bg: linear-gradient(135deg, #f4e4c1, #e0c896);
+  --overlay-content-color: #3a2415;
+  --overlay-content-border: rgba(120, 80, 40, 0.6);
+}
+
+/* ------- MODERN THEME — neon / cyber ----------------------------- */
+body[data-theme="modern"] {
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --bg-base: #0a0e1a;
+  --bg-image:
+    radial-gradient(ellipse at top, rgba(0, 245, 255, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(255, 0, 110, 0.08) 0%, transparent 60%),
+    linear-gradient(135deg, #0a0e1a 0%, #161b2e 100%);
+
+  --text-color: #e8f0ff;
+  --text-accent: #00f5ff;
+  --text-muted: rgba(232, 240, 255, 0.55);
+
+  --panel-bg: rgba(255, 255, 255, 0.04);
+  --panel-border: rgba(0, 245, 255, 0.2);
+  --panel-shadow: 0 4px 24px rgba(0, 245, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  --card-bg: rgba(0, 245, 255, 0.06);
+  --card-border: rgba(0, 245, 255, 0.4);
+  --card-shadow: 0 0 24px rgba(0, 245, 255, 0.25), inset 0 0 16px rgba(0, 245, 255, 0.08);
+  --card-rotation: 0deg;
+
+  --tube-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 245, 255, 0.06));
+  --tube-border: rgba(0, 245, 255, 0.35);
+  --tube-shadow:
+    inset 0 0 20px rgba(0, 245, 255, 0.05),
+    0 0 12px rgba(0, 245, 255, 0.1);
+  --tube-radius: 0 0 28px 28px;
+  --tube-selected-glow: 0 0 28px rgba(255, 0, 110, 0.7), 0 0 8px rgba(255, 0, 110, 0.9);
+  --tube-selected-border: #ff006e;
+
+  --ball-R: radial-gradient(circle at 30% 28%, #ff8fb4 0%, #ff006e 60%, #b00050 100%);
+  --ball-G: radial-gradient(circle at 30% 28%, #80ffd0 0%, #00f5a0 60%, #00a070 100%);
+  --ball-B: radial-gradient(circle at 30% 28%, #80f5ff 0%, #00d5ff 60%, #007090 100%);
+  --ball-Y: radial-gradient(circle at 30% 28%, #fff48f 0%, #ffe74c 60%, #b09010 100%);
+  --rim-R: #ff006e;
+  --rim-G: #00f5a0;
+  --rim-B: #00d5ff;
+  --rim-Y: #ffe74c;
+  --ball-shadow:
+    inset -4px -4px 8px rgba(0, 0, 0, 0.4),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.3),
+    0 0 12px currentColor;
+
+  --btn-bg: rgba(255, 255, 255, 0.06);
+  --btn-bg-hover: rgba(0, 245, 255, 0.12);
+  --btn-color: #e8f0ff;
+  --btn-border: rgba(0, 245, 255, 0.3);
+  --btn-shadow: 0 0 12px rgba(0, 245, 255, 0.15);
+
+  --btn-primary-bg: linear-gradient(135deg, #ff006e, #b00050);
+  --btn-primary-bg-hover: linear-gradient(135deg, #ff3088, #d00060);
+
+  --overlay-bg: rgba(0, 0, 0, 0.8);
+  --overlay-content-bg: linear-gradient(135deg, #161b2e, #0a0e1a);
+  --overlay-content-color: #e8f0ff;
+  --overlay-content-border: rgba(0, 245, 255, 0.4);
+}
+
+/* =====================================================================
+   BASE STYLES (theme-agnostic)
+   ===================================================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--bg-base);
+  background-image: var(--bg-image);
+  background-attachment: fixed;
+  color: var(--text-color);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  /* Respect notch + home indicator in iOS standalone PWA mode. */
+  padding: max(16px, env(safe-area-inset-top))
+           max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom))
+           max(16px, env(safe-area-inset-left));
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+#app {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+/* ----- HEADER ----- */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  font-size: 16px;
+  box-shadow: var(--panel-shadow);
+}
+
+.info-block {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.info-label {
+  opacity: 0.7;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.info-value {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text-accent);
+}
+
+.info-sep {
+  opacity: 0.4;
+}
+
+/* ----- SCREENS ----- */
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+.screen.hidden { display: none; }
+
+/* ----- LEVEL SELECT ----- */
+.select-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px;
+}
+
+.select-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-accent);
+  letter-spacing: 0.5px;
+}
+
+.total-stars-bar {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-accent);
+  opacity: 0.85;
+  padding: 2px;
+}
+.total-stars-bar > span,
+.world-section-stars {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+}
+
+/* ----- WORLD SECTION ----- */
+#worlds-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.world-section {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 14px 14px 16px;
+  box-shadow: var(--panel-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.world-section.locked {
+  opacity: 0.85;
+}
+
+.world-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.world-section-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-accent);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.world-section-stars {
+  font-size: 13px;
+  color: var(--text-accent);
+  opacity: 0.85;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.world-section-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.85;
+  line-height: 1.4;
+}
+
+.world-locked-overlay {
+  text-align: center;
+  padding: 24px 12px;
+  font-size: 14px;
+  color: var(--text-muted);
+  border: 1px dashed var(--panel-border);
+  border-radius: 10px;
+}
+
+.world-locked-overlay .lock-big {
+  font-size: 24px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 4px;
+}
+
+.level-card {
+  aspect-ratio: 1;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: var(--panel-shadow);
+  position: relative;
+  color: var(--text-color);
+  font-family: inherit;
+}
+
+.level-card:hover:not(.locked) {
+  transform: translateY(-2px);
+  border-color: var(--text-accent);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25), var(--panel-shadow);
+}
+
+.level-card .num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-accent);
+}
+
+.level-card.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.level-card.locked .num::before {
+  content: '🔒 ';
+  font-size: 14px;
+}
+
+.level-card .stars-row {
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+/* ----- FRACTIONAL STARS — polygon-based for exact geometry -----
+   Avoids the text-glyph centering problem: the ★ Unicode character isn't
+   horizontally centered in its em-box in most fonts, so a 50% clip looked
+   like a quarter. Drawing the star as a CSS polygon guarantees the shape
+   is dead-centered in its box, so 50% fill = visually exact half. */
+
+.stars-row {
+  display: inline-flex;
+  gap: 4px;
+  font-size: 16px;
+  direction: ltr;
+  justify-content: center;
+}
+.big-stars {
+  font-size: 36px;
+  gap: 10px;
+  align-self: center;
+}
+.level-card .stars-row { font-size: 18px; }
+
+.stars-row .star {
+  position: relative;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  /* outline layer (dark) — clipped to the star polygon shape */
+  background: rgba(60, 30, 10, 0.55);
+  clip-path: polygon(
+    50% 5%,  60% 36%, 93% 36%, 66% 55%, 77% 86%,
+    50% 67%, 24% 86%, 34% 55%, 7% 36%,  40% 36%
+  );
+}
+body[data-theme="modern"] .stars-row .star {
+  background: rgba(0, 245, 255, 0.4);
+}
+
+.stars-row .star::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #c8841a;
+  /* clip the gold fill from the right by (100 - fill)% */
+  clip-path: inset(0 calc(100% - var(--fill, 0%)) 0 0);
+  -webkit-clip-path: inset(0 calc(100% - var(--fill, 0%)) 0 0);
+}
+body[data-theme="modern"] .stars-row .star::before {
+  background: #ffe74c;
+  box-shadow: 0 0 8px rgba(255, 231, 76, 0.4);
+}
+
+.big-stars {
+  font-size: 36px;
+  letter-spacing: 8px;
+  margin: 6px 0;
+}
+
+.big-stars .star {
+  animation: starPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.big-stars .star:nth-child(2) { animation-delay: 0.15s; }
+.big-stars .star:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes starPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.3); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ----- HEADER BUTTONS (back + settings) ----- */
+.back-btn, .settings-btn-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--text-color);
+  font-size: 17px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.back-btn:hover {
+  transform: translateX(3px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.settings-btn-circle:hover {
+  transform: rotate(60deg);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ----- WIN SCREEN UPDATES ----- */
+.win-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.optimal-hint {
+  display: block;
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 4px;
+}
+
+/* ----- TIME ATTACK CARD (on level select) ----- */
+.ta-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  cursor: pointer;
+  color: var(--text-color);
+  font-family: inherit;
+  text-align: right;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.15s ease, border-color 0.2s ease;
+  width: 100%;
+}
+
+.ta-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--text-accent);
+}
+
+.ta-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.ta-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+
+.ta-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-accent);
+}
+
+.ta-sub {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* ----- TIME ATTACK IN-GAME HEADER ----- */
+#ta-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  box-shadow: var(--panel-shadow);
+}
+
+.ta-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ta-time-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+
+.ta-time-value.warning {
+  color: #ff5050;
+  animation: pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+/* ----- QUICK FLASH on TA solve ----- */
+.quick-flash {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-size: 80px;
+  color: #4caf50;
+  text-shadow: 0 0 24px rgba(76, 175, 80, 0.7);
+  pointer-events: none;
+  z-index: 50;
+  animation: flashPop 0.5s ease-out;
+}
+
+@keyframes flashPop {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  40% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+#game-section { position: relative; }
+
+/* ----- TA RESULTS ----- */
+.new-best {
+  font-size: 18px;
+  color: #ffd700;
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+.ta-result-prev {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+/* ----- TOGGLE SWITCH ----- */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+  transition: 0.3s;
+}
+.slider::before {
+  content: '';
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  right: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.3s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.switch input:checked + .slider {
+  background: var(--btn-primary-bg);
+}
+.switch input:checked + .slider::before {
+  transform: translateX(-22px);
+}
+
+/* ----- OPENING ANIMATION (balls drop in) ----- */
+.tube.game .ball {
+  animation: ballDropIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.tube.game .ball:nth-child(1) { animation-delay: 0.10s; }
+.tube.game .ball:nth-child(2) { animation-delay: 0.18s; }
+.tube.game .ball:nth-child(3) { animation-delay: 0.26s; }
+.tube.game .ball:nth-child(4) { animation-delay: 0.34s; }
+
+/* re-render edits skip the drop-in by clearing the class */
+body.no-open-anim .tube.game .ball { animation: none; }
+
+@keyframes ballDropIn {
+  0% { transform: translateY(-260px); opacity: 0; }
+  60% { transform: translateY(8px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* ----- CELEBRATION (win burst) ----- */
+.celebration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 80;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: particleBurst 1.2s ease-out forwards;
+}
+
+/* nostalgic uses star glyphs instead of dots */
+body[data-theme="nostalgic"] .particle {
+  background: none;
+  width: auto;
+  height: auto;
+  font-size: 22px;
+  color: #d4a02c;
+  text-shadow: 0 1px 3px rgba(60, 30, 10, 0.5);
+}
+body[data-theme="nostalgic"] .particle::before { content: '★'; }
+
+@keyframes particleBurst {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) scale(0.4);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(1);
+    opacity: 0;
+  }
+}
+
+/* ----- REDUCE ANIMATIONS ----- */
+body.reduce-anim *,
+body.reduce-anim *::before,
+body.reduce-anim *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.05s !important;
+}
+body.reduce-anim .celebration .particle { display: none; }
+body.reduce-anim .quick-flash { animation: none; opacity: 0; }
+
+/* ----- TERTIARY BUTTON (reset progress) ----- */
+.btn-tertiary {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--panel-border);
+  font-size: 13px;
+  padding: 8px 14px;
+  align-self: center;
+  margin-top: auto;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 8px;
+}
+
+.btn-tertiary:hover {
+  color: var(--text-color);
+  border-style: solid;
+}
+
+/* ----- TARGET CARD ----- */
+#target-section {
+  background: var(--card-bg);
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  transform: rotate(var(--card-rotation));
+  transition: background 0.4s ease, transform 0.4s ease;
+}
+
+.target-label {
+  font-size: 13px;
+  margin-bottom: 10px;
+  opacity: 0.85;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+/* ----- GAME AREA ----- */
+#game-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  padding: 10px 0;
+}
+
+.tubes-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.tubes-container.target {
+  gap: 8px;
+}
+
+/* ----- TUBES ----- */
+.tube {
+  background: var(--tube-bg);
+  border: 2px solid var(--tube-border);
+  border-top: 2px solid transparent;
+  border-radius: var(--tube-radius);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 6px;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  box-shadow: var(--tube-shadow);
+}
+
+.tube.game {
+  width: 62px;
+  /* dynamic: --cap is the per-tube capacity, 1 ball ≈ 52px stack */
+  height: calc(var(--cap, 4) * 52px + 36px);
+}
+
+.tube.target-tube {
+  width: 34px;
+  height: calc(var(--cap, 4) * 28px + 18px);
+  padding: 3px;
+  gap: 2px;
+  cursor: default;
+}
+
+.tube.game:hover {
+  filter: brightness(1.1);
+}
+
+.tube.selected {
+  border-color: var(--tube-selected-border);
+  box-shadow: var(--tube-selected-glow), var(--tube-shadow);
+  transform: translateY(-4px);
+}
+
+/* ----- LOCKED TUBE (World 4) -----
+   Dim the contents + dashed border + badge with countdown. Cursor signals
+   "can't tap". Visible enough that the player notices, not so loud that it
+   competes with the active selection glow. */
+.tube.locked {
+  cursor: not-allowed;
+  border-style: dashed;
+  border-color: rgba(120, 80, 40, 0.55);
+  filter: grayscale(0.6);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.04),
+    rgba(0, 0, 0, 0.04) 6px,
+    rgba(0, 0, 0, 0.12) 6px,
+    rgba(0, 0, 0, 0.12) 12px
+  );
+}
+body[data-theme="modern"] .tube.locked {
+  border-color: rgba(0, 245, 255, 0.18);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 245, 255, 0.03),
+    rgba(0, 245, 255, 0.03) 6px,
+    rgba(255, 255, 255, 0.04) 6px,
+    rgba(255, 255, 255, 0.04) 12px
+  );
+}
+.tube.locked .ball {
+  opacity: 0.45;
+  /* Override the drop-in: locked balls should appear "already sealed inside",
+     not freshly dropped. Fade-in matches the sealed-tube feel. */
+  animation: ballSealedIn 0.5s ease-out both;
+}
+.tube.locked:hover { filter: grayscale(0.6); }
+
+@keyframes ballSealedIn {
+  from { opacity: 0; }
+  to   { opacity: 0.45; }
+}
+body.no-open-anim .tube.locked .ball { animation: none; }
+
+.lock-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-accent);
+  color: var(--card-bg);
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+  letter-spacing: 0.5px;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+body[data-theme="modern"] .lock-badge {
+  background: #ff006e;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px rgba(255, 0, 110, 0.5);
+}
+
+/* ----- COLOR-LOCKED TUBE (World 5) -----
+   A colored bottom signals "this tube accepts only X color". The rim is
+   the tube's own border, recolored. A thicker border + colored inset glow
+   makes the constraint readable at a glance. Selection/lock rim still wins
+   visually because those classes appear later in the cascade. */
+.tube.color-R { border-color: var(--rim-R); box-shadow: var(--tube-shadow), inset 0 -18px 14px -10px var(--rim-R); }
+.tube.color-G { border-color: var(--rim-G); box-shadow: var(--tube-shadow), inset 0 -18px 14px -10px var(--rim-G); }
+.tube.color-B { border-color: var(--rim-B); box-shadow: var(--tube-shadow), inset 0 -18px 14px -10px var(--rim-B); }
+.tube.color-Y { border-color: var(--rim-Y); box-shadow: var(--tube-shadow), inset 0 -18px 14px -10px var(--rim-Y); }
+
+/* Target tubes get the same color hint, scaled */
+.tube.target-tube.color-R { border-color: var(--rim-R); }
+.tube.target-tube.color-G { border-color: var(--rim-G); }
+.tube.target-tube.color-B { border-color: var(--rim-B); }
+.tube.target-tube.color-Y { border-color: var(--rim-Y); }
+
+/* ----- SHIFT TUBE (World 6) -----
+   A rainbow conic-gradient rim signals "balls transform on entry". The
+   rotating cycle echoes the joker, but tinted across the tube border. */
+.tube.shift {
+  border-image: conic-gradient(
+    var(--rim-R), var(--rim-G), var(--rim-B), var(--rim-Y), var(--rim-R)
+  ) 1;
+  border-width: 3px;
+}
+.tube.target-tube.shift {
+  border-image: conic-gradient(
+    var(--rim-R), var(--rim-G), var(--rim-B), var(--rim-Y), var(--rim-R)
+  ) 1;
+  border-width: 2px;
+}
+
+.shift-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  animation: shiftSpin 4s linear infinite;
+}
+body.reduce-anim .shift-badge { animation: none; }
+@keyframes shiftSpin {
+  to { transform: translateX(-50%) rotate(360deg); }
+}
+
+/* If a tube is both locked and shift, lock badge wins position; hide shift */
+.tube.locked .shift-badge { display: none; }
+
+/* ----- MIXER TUBE (World 7) -----
+   Mismatched colors entering this tube fuse into a joker. Bubbling effect
+   at the bottom + flask icon badge. */
+.tube.mixer {
+  border-color: rgba(160, 60, 200, 0.7);
+  border-style: double;
+  border-width: 5px;
+  background:
+    radial-gradient(circle at 50% 90%, rgba(255, 100, 220, 0.18) 0%, transparent 60%),
+    var(--tube-bg);
+}
+body[data-theme="modern"] .tube.mixer {
+  border-color: rgba(255, 100, 220, 0.65);
+  background:
+    radial-gradient(circle at 50% 90%, rgba(255, 0, 200, 0.22) 0%, transparent 60%),
+    var(--tube-bg);
+}
+.tube.target-tube.mixer { border-width: 3px; }
+
+.mixer-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(160, 60, 200, 0.4);
+}
+.tube.locked .mixer-badge { display: none; }
+
+/* Mix completion flash — the new joker pops + glows, so the player can't
+   miss that something special just happened. */
+.ball.just-mixed {
+  animation: mixFlash 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes mixFlash {
+  0%   { transform: scale(0.4); box-shadow: 0 0 40px 12px rgba(255, 100, 220, 0.9); }
+  40%  { transform: scale(1.35); box-shadow: 0 0 36px 8px rgba(255, 100, 220, 0.7); }
+  100% { transform: scale(1); }
+}
+body.reduce-anim .ball.just-mixed { animation: none; }
+
+/* ----- BALLS ----- */
+.ball {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: var(--ball-shadow);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.target-tube .ball {
+  width: 24px;
+  height: 24px;
+  box-shadow:
+    inset -2px -2px 4px rgba(0, 0, 0, 0.25),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.25);
+}
+
+.ball.lifted { transform: translateY(-14px); }
+
+.ball-R { background: var(--ball-R); color: #ff006e; }
+.ball-G { background: var(--ball-G); color: #00f5a0; }
+.ball-B { background: var(--ball-B); color: #00d5ff; }
+.ball-Y { background: var(--ball-Y); color: #ffe74c; }
+
+/* Joker = rainbow wildcard. Theme-aware: soft pastel rainbow in nostalgic,
+   neon rainbow in modern. Conic-gradient gives the unmistakable spectrum look. */
+.ball-J {
+  background: conic-gradient(from 0deg,
+    #e76f51, #f4a261, #e9c46a, #2a9d8f, #264653,
+    #6a4c93, #c5446b, #e76f51);
+  animation: jokerSpin 6s linear infinite;
+}
+body[data-theme="modern"] .ball-J {
+  background: conic-gradient(from 0deg,
+    #ff006e, #ff9100, #ffe74c, #00f5a0, #00d5ff,
+    #6a4cff, #ff006e);
+  box-shadow:
+    inset -4px -4px 8px rgba(0, 0, 0, 0.35),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.35),
+    0 0 14px rgba(255, 255, 255, 0.4);
+}
+@keyframes jokerSpin {
+  to { transform: rotate(360deg); }
+}
+body.reduce-anim .ball-J { animation: none; }
+.target-tube .ball-J { animation: none; }   /* tiny target-card ball stays still */
+
+/* ----- FOOTER / BUTTONS ----- */
+footer {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+button {
+  font-family: inherit;
+  padding: 12px 22px;
+  font-size: 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-weight: 500;
+}
+
+.btn-secondary {
+  background: var(--btn-bg);
+  color: var(--btn-color);
+  border: 1px solid var(--btn-border);
+  box-shadow: var(--btn-shadow);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--btn-bg-hover);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--btn-primary-bg);
+  color: #fff;
+  border: 1px solid var(--btn-border);
+  font-size: 16px;
+  padding: 14px 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  background: var(--btn-primary-bg-hover);
+}
+
+/* ----- OVERLAYS ----- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.3s ease;
+}
+
+.overlay-content {
+  background: var(--overlay-content-bg);
+  color: var(--overlay-content-color);
+  padding: 32px 40px;
+  border-radius: 18px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid var(--overlay-content-border);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  max-width: 90%;
+  animation: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.overlay-content h2 {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.overlay-content p {
+  opacity: 0.85;
+  font-size: 15px;
+}
+
+.overlay-content strong {
+  color: var(--text-accent);
+  font-size: 18px;
+}
+
+/* ----- SETTINGS PANEL ----- */
+.settings-content {
+  min-width: 280px;
+  text-align: right;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--panel-border);
+  gap: 16px;
+}
+
+.setting-row:first-of-type { border-top: none; }
+
+.setting-label {
+  font-size: 15px;
+}
+
+.theme-toggle {
+  display: flex;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.theme-toggle button {
+  padding: 8px 14px;
+  font-size: 13px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-color);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle button.active {
+  background: var(--btn-primary-bg);
+  color: #fff;
+  opacity: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.close-btn {
+  align-self: center;
+  margin-top: 10px;
+}
+
+.hidden { display: none !important; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pop {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 420px) {
+  /* Sized so even 6-tube levels (W4 L10, W5 L9-12, W6 L9) fit a single row:
+     6×44 + 5×5 + 2×16 = 291, well under 375. */
+  .tube.game { width: 44px; height: calc(var(--cap, 4) * 38px + 28px); }
+  .ball { width: 34px; height: 34px; }
+  .tubes-container { gap: 5px; }
+  .level-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .level-card .num { font-size: 18px; }
+  body { padding: 10px; }
+}

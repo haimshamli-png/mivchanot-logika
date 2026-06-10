@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>מבחנות הלוגיקה</title>
+
+  <!-- PWA core -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#6b2a14">
+
+  <!-- iOS: "Add to Home Screen" treats the page as a standalone app -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="מבחנות">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="nostalgic">
+  <div id="app">
+
+    <!-- ===================== LEVEL SELECT ===================== -->
+    <section id="screen-select" class="screen">
+      <header class="select-header">
+        <h1>מבחנות הלוגיקה</h1>
+        <button id="settings-btn-select" class="settings-btn-circle" title="הגדרות">⚙</button>
+      </header>
+
+      <div class="total-stars-bar">
+        <span><span id="total-stars">0</span> / <span id="max-stars">0</span> ⭐</span>
+      </div>
+
+      <button id="time-attack-btn" class="ta-card">
+        <span class="ta-icon">⚡</span>
+        <div class="ta-text">
+          <span class="ta-title">Time Attack</span>
+          <span class="ta-sub">2 דקות · +5 שניות לכל פתרון · שיא: <span id="ta-best">—</span></span>
+        </div>
+      </button>
+
+      <div id="worlds-container"></div>
+
+      <button id="reset-progress-btn" class="btn-tertiary">איפוס התקדמות</button>
+    </section>
+
+    <!-- ===================== GAME ===================== -->
+    <section id="screen-game" class="screen hidden">
+      <!-- Solo header -->
+      <header id="solo-header">
+        <button id="back-btn" class="back-btn" title="חזרה">←</button>
+        <div class="info-block">
+          <span class="info-label">שלב</span>
+          <span id="level-number" class="info-value">1</span>
+        </div>
+        <div class="info-block">
+          <span class="info-label">מהלכים</span>
+          <span id="moves" class="info-value">0</span>
+        </div>
+        <button id="settings-btn" class="settings-btn-circle" title="הגדרות">⚙</button>
+      </header>
+
+      <!-- Time Attack header -->
+      <header id="ta-header" class="hidden">
+        <button id="ta-back-btn" class="back-btn" title="סיים מרוץ">←</button>
+        <div class="info-block">
+          <span class="info-label">פתרונות</span>
+          <span id="ta-solved" class="info-value">0</span>
+        </div>
+        <div class="ta-timer">
+          <span id="ta-time" class="ta-time-value">2:00</span>
+        </div>
+        <button id="settings-btn-ta" class="settings-btn-circle" title="הגדרות">⚙</button>
+      </header>
+
+      <section id="target-section">
+        <div class="target-label">🎯 יעד</div>
+        <div id="target-tubes" class="tubes-container target"></div>
+      </section>
+
+      <section id="game-section">
+        <div id="game-tubes" class="tubes-container game"></div>
+        <div id="quick-flash" class="quick-flash hidden">✓</div>
+      </section>
+
+      <footer id="solo-footer">
+        <button id="undo-btn" class="btn-secondary">↶ חזור מהלך</button>
+        <button id="reset-btn" class="btn-secondary">↺ אפס שלב</button>
+      </footer>
+    </section>
+
+    <!-- ===================== OVERLAYS ===================== -->
+
+    <!-- Solo win -->
+    <div id="win-overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <h2>🎉 פתרת את השלב!</h2>
+        <div id="win-stars" class="stars-row big-stars"></div>
+        <p>סיימת ב-<strong><span id="win-moves">0</span></strong> מהלכים
+          <span class="optimal-hint">(אופטימלי: <span id="win-optimal">0</span>)</span></p>
+        <div class="win-buttons">
+          <button id="back-to-select-btn" class="btn-secondary">לבחירת שלבים</button>
+          <button id="next-btn" class="btn-primary">השלב הבא →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- World complete -->
+    <div id="game-complete-overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <h2>🏆 סיימת את העולם!</h2>
+        <p>זה הסוף של המהדורה הראשונה. עוד עולמות בדרך.</p>
+        <button id="complete-back-btn" class="btn-primary">לבחירת שלבים</button>
+      </div>
+    </div>
+
+    <!-- Time Attack results -->
+    <div id="ta-result-overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <h2 id="ta-result-title">⏱ זמן נגמר</h2>
+        <p>פתרת <strong><span id="ta-result-solved">0</span></strong> שלבים</p>
+        <p id="ta-result-new-best" class="new-best hidden">🏆 שיא חדש!</p>
+        <p class="ta-result-prev">שיא קודם: <span id="ta-result-prev">—</span></p>
+        <div class="win-buttons">
+          <button id="ta-result-back-btn" class="btn-secondary">חזרה לתפריט</button>
+          <button id="ta-result-retry-btn" class="btn-primary">סיבוב נוסף ↻</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div id="settings-overlay" class="overlay hidden">
+      <div class="overlay-content settings-content">
+        <h2>⚙ הגדרות</h2>
+        <div class="setting-row">
+          <span class="setting-label">ערכת עיצוב</span>
+          <div class="theme-toggle">
+            <button data-theme-value="nostalgic">🪵 נוסטלגי</button>
+            <button data-theme-value="modern">⚡ מודרני</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">הפחתת אנימציות</span>
+          <label class="switch">
+            <input type="checkbox" id="reduce-anim-toggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <button id="settings-close-btn" class="btn-secondary close-btn">סגור</button>
+      </div>
+    </div>
+
+    <!-- Win celebration particles container -->
+    <div id="celebration" class="celebration hidden"></div>
+  </div>
+
+  <script src="levels.js"></script>
+  <script src="game.js"></script>
+
+  <!-- Service worker: enables offline play + instant repeat loads. -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
