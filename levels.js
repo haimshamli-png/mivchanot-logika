@@ -377,10 +377,25 @@ const WORLDS = [
         initial: [['Y','B','G','R'],['B','Y','R','G'],[],[],[],[]],
         target:  [[],[],['G','G'],['B','B'],['Y','Y'],['R','R']],
         shifts:  [2,3,4,5] },
-      // 10 MASTER FINAL — joker sandwiched between R's, must become B's
+      // 10 MASTER — joker sandwiched between R's, must become B's
       { capacities: [4,4,4,4,4], optimalMoves: 9,
         initial: [['R','J','R','J'],[],[],[],[]],
         target:  [[],[],['B','J','B','J'],[],[]],
+        shifts:  [2] },
+      // 11 MASTER — two shift tubes, color budget forces re-conversion.
+      // Only 2 G + 2 B exist, but tube 2 needs B's (from G) and tube 3 needs
+      // Y's (from B) — so colors must be cycled THROUGH the shift tubes, not
+      // just sorted. The two shift tubes become a conversion pipeline.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 13,
+        initial: [['R','G','B','Y'],['Y','B','G','R'],[],[],[],[]],
+        target:  [[],[],['B','B'],['Y','Y'],['R','R'],['G','G']],
+        shifts:  [2,3] },
+      // 12 MASTER FINAL — ping-pong endurance. Every ball must become B in
+      // one shift tube: R needs 2 passes (R→G→B), Y needs 3 (Y→R→G→B). The
+      // interleaved Y,R,Y,R source forces careful buffer ordering.
+      { capacities: [4,4,4,4,4], optimalMoves: 16,
+        initial: [['Y','R','Y','R'],[],[],[],[]],
+        target:  [[],[],['B','B','B','B'],[],[]],
         shifts:  [2] }
     ]
   },
