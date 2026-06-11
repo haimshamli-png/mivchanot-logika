@@ -41,6 +41,9 @@ const VIOLATION_COPY = {
 };
 const COLOR_NAME = { R: 'אדום', G: 'ירוק', B: 'כחול', Y: 'צהוב' };
 
+// The toast is a single centered hint floating in the empty band above the
+// play tubes — not pinned to the offending tube. `tubeIndex` is kept in the
+// signature (call sites still pass it) but no longer used for placement.
 function showViolation(tubeIndex, rule, ctx) {
   const repeat = state.lastViolation === rule;
   state.lastViolation = rule;
@@ -48,15 +51,23 @@ function showViolation(tubeIndex, rule, ctx) {
   if (!copy) return;
   const text = repeat ? copy.full(ctx || {}) : copy.short;
 
-  const tubeEls = document.querySelectorAll('#game-tubes .tube.game');
-  const tubeEl = tubeEls[tubeIndex];
-  if (!tubeEl) return;
-  // Remove any prior toast on this tube so rapid repeats don't pile up.
-  tubeEl.querySelectorAll('.violation-toast').forEach((t) => t.remove());
+  const host = el.gameSection;
+  if (!host) return;
+  // Remove any prior toast so rapid repeats don't pile up.
+  host.querySelectorAll('.violation-toast').forEach((t) => t.remove());
   const toast = document.createElement('div');
   toast.className = 'violation-toast' + (repeat ? ' full' : '');
   toast.textContent = text;
-  tubeEl.appendChild(toast);
+  host.appendChild(toast);
+  // Center it vertically in the empty band between the target card's bottom
+  // and the play tubes' top. Measured per level so it lands mid-gap whatever
+  // the tube height is. translate(-50%, -50%) in CSS pins the toast's center.
+  const gs = host.getBoundingClientRect();
+  const tubesTop = el.gameTubes.getBoundingClientRect().top;
+  const targetSec = document.getElementById('target-section');
+  const gapTop = targetSec ? targetSec.getBoundingClientRect().bottom : gs.top;
+  const gapMid = (gapTop + tubesTop) / 2;
+  toast.style.top = Math.max(8, Math.round(gapMid - gs.top)) + 'px';
   setTimeout(() => toast.classList.add('fading'), repeat ? 1800 : 1100);
   setTimeout(() => toast.remove(), repeat ? 2200 : 1500);
 }
@@ -144,6 +155,7 @@ const el = {
   quickFlash: document.getElementById('quick-flash'),
 
   targetTubes: document.getElementById('target-tubes'),
+  gameSection: document.getElementById('game-section'),
   gameTubes: document.getElementById('game-tubes'),
   undoBtn: document.getElementById('undo-btn'),
   resetBtn: document.getElementById('reset-btn'),

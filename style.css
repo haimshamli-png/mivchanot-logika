@@ -992,13 +992,15 @@ body[data-theme="modern"] .tube.mixer {
 .tube.locked .mixer-badge { display: none; }
 
 /* ----- VIOLATION TOAST -----
-   Surfaces over the offending tube. Short hint by default; full sentence
-   when the same rule is broken twice in a row. Auto-dismisses. */
+   A single centered hint floating in the empty band between the target card
+   and the play tubes (hosted in #game-section, which vertically centers the
+   tubes — so this sits in the gap above them). Short hint by default; full
+   sentence when the same rule is broken twice in a row. Auto-dismisses. */
 .violation-toast {
   position: absolute;
-  bottom: calc(100% + 6px);
+  top: 13%; /* fallback; showViolation overrides with a measured mid-gap value */
   left: 50%;
-  transform: translateX(-50%) translateY(4px);
+  transform: translate(-50%, -50%);
   background: rgba(40, 18, 8, 0.92);
   color: #f4e4c1;
   font-family: var(--font-main);
@@ -1034,12 +1036,12 @@ body[data-theme="modern"] .violation-toast {
   box-shadow: 0 0 14px rgba(255, 0, 110, 0.35);
 }
 @keyframes violationIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.85); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)) scale(0.85); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 @keyframes violationOut {
-  from { opacity: 1; transform: translateX(-50%) translateY(0); }
-  to   { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  from { opacity: 1; transform: translate(-50%, -50%); }
+  to   { opacity: 0; transform: translate(-50%, calc(-50% - 6px)); }
 }
 body.reduce-anim .violation-toast { animation: none; opacity: 1; }
 
