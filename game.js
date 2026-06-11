@@ -434,16 +434,18 @@ function onTubeTap(index) {
   const to = index;
   const destLock = tubeLockInfo(to);
   if (destLock.locked) {
-    showViolation(to, 'lock', { remaining: destLock.remaining });
+    // renderGame rebuilds #game-tubes, so the toast must be attached AFTER it
+    // or it gets wiped along with the old tube element.
     state.selectedTubeIndex = null;
     renderGame(true);
+    showViolation(to, 'lock', { remaining: destLock.remaining });
     return;
   }
   const movingBall = state.tubes[from][state.tubes[from].length - 1];
   if (!tubeAcceptsColor(to, movingBall)) {
-    showViolation(to, 'color', { color: state.tubeColors[to] });
     state.selectedTubeIndex = null;
     renderGame(true);
+    showViolation(to, 'color', { color: state.tubeColors[to] });
     return;
   }
   // Stacking check uses the POST-shift color: if the destination is a shift
@@ -480,15 +482,15 @@ function onTubeTap(index) {
 
   // Normal placement requires both capacity AND a legal stack.
   if (state.tubes[to].length >= state.capacities[to]) {
-    showViolation(to, 'capacity');
     state.selectedTubeIndex = null;
     renderGame(true);
+    showViolation(to, 'capacity');
     return;
   }
   if (!wouldStack) {
-    showViolation(to, 'stack');
     state.selectedTubeIndex = null;
     renderGame(true);
+    showViolation(to, 'stack');
     return;
   }
   clearViolation();
