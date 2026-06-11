@@ -116,7 +116,7 @@ const WORLDS = [
     name: 'כדור הג\'וקר',
     icon: '🌈',
     description: 'כדור-קשת עולה על כל צבע. כל צבע עולה עליו. החיץ הכי גמיש.',
-    unlockStars: 35,  // half of (World 1 max 42 + World 2 max 27) = 35
+    unlockStars: 18,  // visible world set is W1/W3/W4/W6 only (W2/W5/W7 retired) — ~half of W1's 42
     levels: [
       // intro 1: 1 move — joker on top, move it aside
       { capacities: [4,4,4], optimalMoves: 1,
@@ -166,7 +166,7 @@ const WORLDS = [
     name: 'מבחנות נעולות',
     icon: '🔒',
     description: 'מבחנה נעולה לכמה מהלכים. רואים אותה אבל לא נוגעים — עד שהמספר יורד לאפס.',
-    unlockStars: 50,
+    unlockStars: 32,
     // Each level may declare locks:
     //   locks: [{ tubeIndex: i, unlockAt: N }, ...]
     // Tube i is fully blocked (source AND destination) while state.moveCount < N.
@@ -221,7 +221,27 @@ const WORLDS = [
       { capacities: [4,4,4,4,4,4], optimalMoves: 22,
         initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','G'],['Y','R','G','B'],[],[]],
         target:  [['R','R','R','R'],['G','G','G','G'],['B','B','B','B'],['Y','Y','Y','Y'],[],[]],
-        locks:   [{ tubeIndex: 0, unlockAt: 6 }, { tubeIndex: 2, unlockAt: 6 }] }
+        locks:   [{ tubeIndex: 0, unlockAt: 6 }, { tubeIndex: 2, unlockAt: 6 }] },
+      // 11 — joker mix + single deep lock (22 moves)
+      { capacities: [4,4,4,4,4], optimalMoves: 22,
+        initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','J'],['J','G'],[]],
+        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],['J','J']],
+        locks:   [{ tubeIndex: 4, unlockAt: 6 }] },
+      // 12 — 6-tube 4-color with mid-deep lock (23 moves)
+      { capacities: [4,4,4,4,4,4], optimalMoves: 23,
+        initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','G'],['Y','R','G','B'],[],[]],
+        target:  [['R','R','R','R'],['G','G','G','G'],['B','B','B','B'],['Y','Y','Y','Y'],[],[]],
+        locks:   [{ tubeIndex: 5, unlockAt: 8 }] },
+      // 13 — same shape, much deeper lock (24 moves)
+      { capacities: [4,4,4,4,4,4], optimalMoves: 24,
+        initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','G'],['Y','R','G','B'],[],[]],
+        target:  [['R','R','R','R'],['G','G','G','G'],['B','B','B','B'],['Y','Y','Y','Y'],[],[]],
+        locks:   [{ tubeIndex: 5, unlockAt: 15 }] },
+      // 14 MONSTER FINAL — joker mix with deep lock (26 moves)
+      { capacities: [4,4,4,4,4], optimalMoves: 26,
+        initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','J'],['J','G'],[]],
+        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],['J','J']],
+        locks:   [{ tubeIndex: 4, unlockAt: 10 }] }
     ]
   },
 
@@ -305,7 +325,7 @@ const WORLDS = [
     name: 'מבחנות שיפט',
     icon: '🔄',
     description: 'מבחנת שיפט הופכת כל כדור שנכנס לצבע הבא במחזור: R→G→B→Y→R. ג\'וקר נשאר ג\'וקר.',
-    unlockStars: 85,
+    unlockStars: 56,
     // Each level may declare:
     //   shifts: [tubeIndex, ...]
     //     Listed tubes apply the cycle (R→G→B→Y→R) to balls entering them.

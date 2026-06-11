@@ -991,6 +991,58 @@ body[data-theme="modern"] .tube.mixer {
 }
 .tube.locked .mixer-badge { display: none; }
 
+/* ----- VIOLATION TOAST -----
+   Surfaces over the offending tube. Short hint by default; full sentence
+   when the same rule is broken twice in a row. Auto-dismisses. */
+.violation-toast {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(40, 18, 8, 0.92);
+  color: #f4e4c1;
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  animation: violationIn 0.22s ease-out forwards;
+  text-align: center;
+}
+.violation-toast.full {
+  white-space: normal;
+  max-width: 240px;
+  min-width: 180px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  font-weight: 500;
+  padding: 10px 14px;
+}
+.violation-toast.fading {
+  animation: violationOut 0.35s ease-out forwards;
+}
+body[data-theme="modern"] .violation-toast {
+  background: rgba(0, 0, 0, 0.88);
+  color: #ffd0e0;
+  border: 1px solid rgba(255, 0, 110, 0.35);
+  box-shadow: 0 0 14px rgba(255, 0, 110, 0.35);
+}
+@keyframes violationIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.85); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+@keyframes violationOut {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to   { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+}
+body.reduce-anim .violation-toast { animation: none; opacity: 1; }
+
 /* Mix completion flash — the new joker pops + glows, so the player can't
    miss that something special just happened. */
 .ball.just-mixed {

@@ -17,11 +17,67 @@ const state = {
   selectedTubeIndex: null,
   moveCount: 0,
   moveHistory: [],
+  lastViolation: null,        // rule key of the most recent illegal-move feedback (for toast escalation)
   taTimeLeft: 0,
   taTimerId: null,
   taSolved: 0,
   taLevelQueue: []
 };
+
+/* =====================================================================
+   VIOLATION TOAST
+   First time the player breaks a rule → short icon-led hint.
+   Second time the SAME rule is broken in a row → full sentence.
+   A successful move resets the counter so a new violation starts short again.
+   ===================================================================== */
+
+const VIOLATION_COPY = {
+  lock:     { short: '🔒 נעולה', full: (ctx) => `המבחנה נעולה. עוד ${ctx.remaining} מהלכים והיא תיפתח.` },
+  color:    { short: '🎯 צבע אחר',
+              full: (ctx) => `המבחנה מקבלת רק כדור ${COLOR_NAME[ctx.color] || ctx.color} או ג'וקר.` },
+  capacity: { short: '🚫 מלא',  full: () => 'המבחנה מלאה ולא יכולה לקבל עוד כדורים.' },
+  stack:    { short: '❌ לא תואם',
+              full: () => 'אפשר להניח כדור רק על אותו צבע, על ג\'וקר, או במבחנה ריקה.' }
+};
+const COLOR_NAME = { R: 'אדום', G: 'ירוק', B: 'כחול', Y: 'צהוב' };
+
+function showViolation(tubeIndex, rule, ctx) {
+  const repeat = state.lastViolation === rule;
+  state.lastViolation = rule;
+  const copy = VIOLATION_COPY[rule];
+  if (!copy) return;
+  const text = repeat ? copy.full(ctx || {}) : copy.short;
+
+  const tubeEls = document.querySelectorAll('#game-tubes .tube.game');
+  const tubeEl = tubeEls[tubeIndex];
+  if (!tubeEl) return;
+  // Remove any prior toast on this tube so rapid repeats don't pile up.
+  tubeEl.querySelectorAll('.violation-toast').forEach((t) => t.remove());
+  const toast = document.createElement('div');
+  toast.className = 'violation-toast' + (repeat ? ' full' : '');
+  toast.textContent = text;
+  tubeEl.appendChild(toast);
+  setTimeout(() => toast.classList.add('fading'), repeat ? 1800 : 1100);
+  setTimeout(() => toast.remove(), repeat ? 2200 : 1500);
+}
+
+function clearViolation() {
+  state.lastViolation = null;
+}
+
+/* =====================================================================
+   WORLD VISIBILITY
+   Some early-prototype worlds were retired but kept in levels.js so old
+   progress entries in localStorage stay loadable. They just don't appear
+   in any UI and don't count toward star totals.
+   ===================================================================== */
+const HIDDEN_WORLD_IDS = [2, 5, 7];
+function isWorldVisible(world) {
+  return !HIDDEN_WORLD_IDS.includes(world.id);
+}
+function visibleWorlds() {
+  return WORLDS.filter(isWorldVisible);
+}
 
 // Lock state is purely derived from moveCount + level.locks, so undo "rewinds"
 // locks for free without any history bookkeeping.
@@ -99,6 +155,8 @@ const el = {
   nextBtn: document.getElementById('next-btn'),
   backToSelectBtn: document.getElementById('back-to-select-btn'),
   completeOverlay: document.getElementById('game-complete-overlay'),
+  completeTitle: document.getElementById('complete-title'),
+  completeBody: document.getElementById('complete-body'),
   completeBackBtn: document.getElementById('complete-back-btn'),
   taResultOverlay: document.getElementById('ta-result-overlay'),
   taResultSolved: document.getElementById('ta-result-solved'),
@@ -170,11 +228,11 @@ function getWorldStars(worldId) {
 }
 
 function getTotalStars() {
-  return WORLDS.reduce((sum, w) => sum + getWorldStars(w.id), 0);
+  return visibleWorlds().reduce((sum, w) => sum + getWorldStars(w.id), 0);
 }
 
 function getMaxStars() {
-  return WORLDS.reduce((sum, w) => sum + w.levels.length * 3, 0);
+  return visibleWorlds().reduce((sum, w) => sum + w.levels.length * 3, 0);
 }
 
 function isWorldUnlocked(world) {
@@ -275,7 +333,7 @@ function formatStars(n) {
 
 function renderLevelSelect() {
   el.worldsContainer.innerHTML = '';
-  WORLDS.forEach(world => {
+  visibleWorlds().forEach(world => {
     const section = document.createElement('div');
     section.className = 'world-section';
     const unlocked = isWorldUnlocked(world);
@@ -363,20 +421,27 @@ function onTubeTap(index) {
   }
   if (state.selectedTubeIndex === null) {
     if (state.tubes[index].length === 0) return;
-    if (tubeLockInfo(index).locked) return;
+    const lock = tubeLockInfo(index);
+    if (lock.locked) {
+      showViolation(index, 'lock', { remaining: lock.remaining });
+      return;
+    }
     state.selectedTubeIndex = index;
     renderGame(true);
     return;
   }
   const from = state.selectedTubeIndex;
   const to = index;
-  if (tubeLockInfo(to).locked) {
+  const destLock = tubeLockInfo(to);
+  if (destLock.locked) {
+    showViolation(to, 'lock', { remaining: destLock.remaining });
     state.selectedTubeIndex = null;
     renderGame(true);
     return;
   }
   const movingBall = state.tubes[from][state.tubes[from].length - 1];
   if (!tubeAcceptsColor(to, movingBall)) {
+    showViolation(to, 'color', { color: state.tubeColors[to] });
     state.selectedTubeIndex = null;
     renderGame(true);
     return;
@@ -398,6 +463,7 @@ function onTubeTap(index) {
   // the incoming ball is consumed, the top is replaced by a joker. Net ball
   // count -1; tube length unchanged so capacity isn't a barrier here.
   if (isMixer && !wouldStack) {
+    clearViolation();
     state.tubes[from].pop();
     const consumedTop = state.tubes[to].pop();
     state.tubes[to].push('J');
@@ -414,15 +480,18 @@ function onTubeTap(index) {
 
   // Normal placement requires both capacity AND a legal stack.
   if (state.tubes[to].length >= state.capacities[to]) {
+    showViolation(to, 'capacity');
     state.selectedTubeIndex = null;
     renderGame(true);
     return;
   }
   if (!wouldStack) {
+    showViolation(to, 'stack');
     state.selectedTubeIndex = null;
     renderGame(true);
     return;
   }
+  clearViolation();
   state.tubes[from].pop();
   state.tubes[to].push(effective);
   state.moveHistory.push({ from, to, original: movingBall });
@@ -484,6 +553,15 @@ function showSoloWin() {
   el.nextBtn.classList.toggle('hidden', isLastInWorld);
   el.winOverlay.classList.remove('hidden');
   if (isLastInWorld) {
+    const visible = visibleWorlds();
+    const isLastWorld = world.id === visible[visible.length - 1].id;
+    const totalLevels = visible.reduce((sum, w) => sum + w.levels.length, 0);
+    el.completeTitle.textContent = isLastWorld
+      ? `🏆 סיימת את כל המשחק!`
+      : `🏆 סיימת את "${world.name}"!`;
+    el.completeBody.textContent = isLastWorld
+      ? `כל ${totalLevels} השלבים מאחוריך. כל הכבוד!`
+      : `עולם ${world.icon} ${world.name} הושלם. עוד עולמות מחכים.`;
     setTimeout(() => {
       el.winOverlay.classList.add('hidden');
       el.completeOverlay.classList.remove('hidden');
