@@ -245,11 +245,20 @@ const WORLDS = [
         initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','G'],['Y','R','G','B'],[],[]],
         target:  [['R','R','R','R'],['G','G','G','G'],['B','B','B','B'],['Y','Y','Y','Y'],[],[]],
         locks:   [{ tubeIndex: 5, unlockAt: 15 }] },
-      // 14 MONSTER FINAL — joker mix with deep lock (26 moves)
+      // 14 — joker mix with deep lock (26 moves)
       { capacities: [4,4,4,4,4], optimalMoves: 26,
         initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','J'],['J','G'],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],['J','J']],
-        locks:   [{ tubeIndex: 4, unlockAt: 10 }] }
+        locks:   [{ tubeIndex: 4, unlockAt: 10 }] },
+      // 15 MONSTER FINAL — cross-mechanic: deep lock + a small (cap 2) buffer.
+      // tube0 is frozen for 11 moves while the only roomy buffer is tube3; the
+      // cap-2 tube4 cannot absorb a 3-stack, so the player must juggle staging
+      // tightly. Same puzzle with a cap-4 buffer solves in 22 — the small tube
+      // adds 5 real moves of planning. BFS-verified.
+      { capacities: [4,4,4,4,2], optimalMoves: 27,
+        initial: [['Y','R','B','G'],['G','B','R','Y'],['B','G','Y','R'],[],[]],
+        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]],
+        locks:   [{ tubeIndex: 0, unlockAt: 11 }] }
     ]
   },
 
