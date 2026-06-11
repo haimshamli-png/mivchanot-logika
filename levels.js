@@ -491,6 +491,62 @@ const WORLDS = [
         target:  [[],[],['J','J','J','J'],[]],
         mixers:  [2] }
     ]
+  },
+
+  {
+    id: 8,
+    name: 'מעבדת הפיגמנטים',
+    icon: '⚗️',
+    description: 'מבחנות ערבוב יוצרות צבעים חדשים: כחול+צהוב=ירוק, אדום+כחול=סגול, ירוק+אדום=שחור.',
+    unlockStars: 86,
+    // Each level may declare:
+    //   blenders: [tubeIndex, ...]
+    // A blender tube combines a recipe pair on contact. The incoming ball and
+    // the current top are consumed, and the recipe result remains in the tube.
+    // Recipes live in pigment-mixing.js so game logic and tests share them.
+    levels: [
+      // 1: intro — there is no green; make it from blue + yellow.
+      { capacities: [4,4,4], optimalMoves: 2,
+        initial: [['B'],['Y'],[]],
+        target:  [[],[],['G']],
+        blenders: [2] },
+      // 2: make two greens, moving each product out before the next recipe.
+      { capacities: [4,4,4,4], optimalMoves: 6,
+        initial: [['B','B'],['Y','Y'],[],[]],
+        target:  [[],[],[],['G','G']],
+        blenders: [2] },
+      // 3: two recipes in one level — green and purple need different pairs.
+      { capacities: [4,4,4,4,4], optimalMoves: 6,
+        initial: [['R','B'],['B','Y'],[],[],[]],
+        target:  [[],[],[],['G'],['P']],
+        blenders: [2] },
+      // 4: chain recipe — first make green, then combine it with red.
+      { capacities: [4,4,4,4], optimalMoves: 3,
+        initial: [['B'],['Y'],['R'],[]],
+        target:  [[],[],[],['K']],
+        blenders: [3] },
+      // 5: preserve one green, then make a second green as material for black.
+      { capacities: [4,4,4,4,4], optimalMoves: 6,
+        initial: [['B','B'],['Y','Y'],['R'],[],[]],
+        target:  [[],[],[],['G'],['K']],
+        blenders: [4] },
+      // 6: the created black must be routed into a color-locked destination.
+      { capacities: [4,4,4,4,4], optimalMoves: 4,
+        initial: [['B'],['Y'],['R'],[],[]],
+        target:  [[],[],[],[],['K']],
+        blenders: [3],
+        tubeColors: [null, null, null, null, 'K'] },
+      // 7: small blender — capacity is tight, but recipes still leave room.
+      { capacities: [4,4,2,4], optimalMoves: 6,
+        initial: [['B','B'],['Y','Y'],[],[]],
+        target:  [[],[],[],['G','G']],
+        blenders: [2] },
+      // 8 MASTER: two products and a chained product, with one shared lab tube.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 9,
+        initial: [['R','B','B'],['Y','Y'],['B','R'],[],[],[]],
+        target:  [[],[],[],['K'],['G'],['P']],
+        blenders: [3] }
+    ]
   }
 ];
 

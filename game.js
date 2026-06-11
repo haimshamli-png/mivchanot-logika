@@ -14,6 +14,7 @@ const state = {
   tubeColors: [],             // per-tube color tag (null = agnostic, 'R'/'G'/'B'/'Y' = color-locked)
   shifts: [],                 // tube indices that transform incoming balls (W6)
   mixers: [],                 // tube indices that mix mismatched colors into a joker (W7)
+  blenders: [],               // tube indices that combine recipe colors into a new color (W8)
   selectedTubeIndex: null,
   moveCount: 0,
   moveHistory: [],
@@ -37,9 +38,11 @@ const VIOLATION_COPY = {
               full: (ctx) => `המבחנה מקבלת רק כדור ${COLOR_NAME[ctx.color] || ctx.color} או ג'וקר.` },
   capacity: { short: '🚫 מלא',  full: () => 'המבחנה מלאה ולא יכולה לקבל עוד כדורים.' },
   stack:    { short: '❌ לא תואם',
-              full: () => 'אפשר להניח כדור רק על אותו צבע, על ג\'וקר, או במבחנה ריקה.' }
+              full: () => 'אפשר להניח כדור רק על אותו צבע, על ג\'וקר, או במבחנה ריקה.' },
+  blend:    { short: '⚗️ אין מתכון',
+              full: () => 'במבחנת ערבוב צריך זוג צבעים שיוצר צבע חדש לפי המתכונים.' }
 };
-const COLOR_NAME = { R: 'אדום', G: 'ירוק', B: 'כחול', Y: 'צהוב' };
+const COLOR_NAME = { R: 'אדום', G: 'ירוק', B: 'כחול', Y: 'צהוב', P: 'סגול', K: 'שחור' };
 
 // The toast is a single centered hint floating in the empty band above the
 // play tubes — not pinned to the offending tube. `tubeIndex` is kept in the
@@ -131,6 +134,12 @@ function flashMixedBall(tubeIndex) {
   if (!topBall) return;
   topBall.classList.add('just-mixed');
   setTimeout(() => topBall.classList.remove('just-mixed'), 700);
+}
+
+function blendedBall(topBall, incomingBall) {
+  const api = window.PIGMENT_MIXING || (typeof PIGMENT_MIXING !== 'undefined' ? PIGMENT_MIXING : null);
+  if (!api) return null;
+  return api.mixPair(topBall, incomingBall);
 }
 
 // Shift cycle (W6): R→G→B→Y→R. Joker is immune.
@@ -380,6 +389,9 @@ function getRuleSummary() {
   if (state.mixers.length > 0) {
     parts.push('מערבל הופך שני צבעים שונים לג׳וקר אחד.');
   }
+  if (state.blenders.length > 0) {
+    parts.push('מבחנת ערבוב משלבת זוג צבעים לפי מתכון ויוצרת כדור חדש.');
+  }
   const hasJoker = state.tubes.concat(state.target).some(t => t.includes('J'));
   if (hasJoker) {
     parts.push('ג׳וקר מתאים לכל צבע וכל צבע מתאים עליו.');
@@ -466,6 +478,7 @@ function loadLevelData(level) {
     : level.capacities.map(() => null);
   state.shifts = level.shifts ? [...level.shifts] : [];
   state.mixers = level.mixers ? [...level.mixers] : [];
+  state.blenders = level.blenders ? [...level.blenders] : [];
   state.selectedTubeIndex = null;
   state.moveCount = 0;
   state.moveHistory = [];
@@ -517,10 +530,30 @@ function onTubeTap(index) {
     ? state.tubes[to][state.tubes[to].length - 1]
     : null;
   const isMixer = state.mixers.includes(to);
+  const isBlender = state.blenders.includes(to);
+  const blendResult = isBlender && destTop !== null
+    ? blendedBall(destTop, effective)
+    : null;
   const wouldStack = destTop === null
     || destTop === effective
     || destTop === 'J'
     || effective === 'J';
+
+  // BLEND (W8): a recipe pair inside a blender tube consumes the incoming
+  // ball and the current top, replacing them with the recipe result.
+  if (blendResult) {
+    clearViolation();
+    state.tubes[from].pop();
+    const consumedTop = state.tubes[to].pop();
+    state.tubes[to].push(blendResult);
+    state.moveHistory.push({ from, to, original: movingBall, mixed: true, consumedTop });
+    state.moveCount++;
+    state.selectedTubeIndex = null;
+    renderGame(true);
+    flashMixedBall(to);
+    if (checkWin()) handleWin();
+    return;
+  }
 
   // MIX (W7): in a mixer tube, a mismatched non-joker top triggers a mix:
   // the incoming ball is consumed, the top is replaced by a joker. Net ball
@@ -551,7 +584,7 @@ function onTubeTap(index) {
   if (!wouldStack) {
     state.selectedTubeIndex = null;
     renderGame(true);
-    showViolation(to, 'stack');
+    showViolation(to, isBlender ? 'blend' : 'stack');
     return;
   }
   clearViolation();
@@ -753,6 +786,8 @@ function renderTube(tube, index, isTarget, capacity) {
   if (isShift) tubeEl.classList.add('shift');
   const isMixer = state.mixers.includes(index);
   if (isMixer) tubeEl.classList.add('mixer');
+  const isBlender = state.blenders.includes(index);
+  if (isBlender) tubeEl.classList.add('blender');
   if (!isTarget) {
     if (state.selectedTubeIndex === index) tubeEl.classList.add('selected');
     const badgeStrip = document.createElement('div');
@@ -778,6 +813,13 @@ function renderTube(tube, index, isTarget, capacity) {
       badge.className = 'mixer-badge';
       badge.textContent = '🧪';
       badge.title = 'מערבל';
+      badgeStrip.appendChild(badge);
+    }
+    if (isBlender) {
+      const badge = document.createElement('div');
+      badge.className = 'blender-badge';
+      badge.textContent = '⚗️';
+      badge.title = 'מבחנת ערבוב';
       badgeStrip.appendChild(badge);
     }
     if (badgeStrip.children.length > 0) tubeEl.appendChild(badgeStrip);

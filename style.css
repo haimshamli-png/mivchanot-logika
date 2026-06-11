@@ -66,10 +66,14 @@ body[data-theme="nostalgic"] {
   --ball-G: radial-gradient(circle at 30% 28%, #9bb073 0%, #7a8b4f 60%, #4f5d2a 100%);
   --ball-B: radial-gradient(circle at 30% 28%, #80a0c0 0%, #5b7b9a 60%, #3a5470 100%);
   --ball-Y: radial-gradient(circle at 30% 28%, #e8c878 0%, #c4a04a 60%, #8a6e1a 100%);
+  --ball-P: radial-gradient(circle at 30% 28%, #b58ac7 0%, #7b4a92 60%, #4a285f 100%);
+  --ball-K: radial-gradient(circle at 30% 28%, #77706b 0%, #34302d 62%, #13100e 100%);
   --rim-R: #b54a3e;
   --rim-G: #7a8b4f;
   --rim-B: #5b7b9a;
   --rim-Y: #c4a04a;
+  --rim-P: #7b4a92;
+  --rim-K: #34302d;
   --ball-shadow:
     inset -3px -3px 6px rgba(0, 0, 0, 0.35),
     inset 3px 3px 6px rgba(255, 255, 255, 0.25),
@@ -126,10 +130,14 @@ body[data-theme="modern"] {
   --ball-G: radial-gradient(circle at 30% 28%, #80ffd0 0%, #00f5a0 60%, #00a070 100%);
   --ball-B: radial-gradient(circle at 30% 28%, #80f5ff 0%, #00d5ff 60%, #007090 100%);
   --ball-Y: radial-gradient(circle at 30% 28%, #fff48f 0%, #ffe74c 60%, #b09010 100%);
+  --ball-P: radial-gradient(circle at 30% 28%, #d6a0ff 0%, #9b5cff 60%, #4e1ca8 100%);
+  --ball-K: radial-gradient(circle at 30% 28%, #9aa3ad 0%, #252a32 62%, #05070b 100%);
   --rim-R: #ff006e;
   --rim-G: #00f5a0;
   --rim-B: #00d5ff;
   --rim-Y: #ffe74c;
+  --rim-P: #9b5cff;
+  --rim-K: #252a32;
   --ball-shadow:
     inset -4px -4px 8px rgba(0, 0, 0, 0.4),
     inset 3px 3px 6px rgba(255, 255, 255, 0.3),
@@ -954,7 +962,8 @@ body.no-open-anim .tube.locked .ball { animation: none; }
 
 .lock-badge,
 .shift-badge,
-.mixer-badge {
+.mixer-badge,
+.blender-badge {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -990,12 +999,16 @@ body[data-theme="modern"] .lock-badge {
 .tube.color-G { border-color: var(--rim-G); box-shadow: var(--tube-shadow), inset 0 -18px 14px -10px var(--rim-G); }
 .tube.color-B { border-color: var(--rim-B); box-shadow: var(--tube-shadow), inset 0 -18px 14px -10px var(--rim-B); }
 .tube.color-Y { border-color: var(--rim-Y); box-shadow: var(--tube-shadow), inset 0 -18px 14px -10px var(--rim-Y); }
+.tube.color-P { border-color: var(--rim-P); box-shadow: var(--tube-shadow), inset 0 -18px 14px -10px var(--rim-P); }
+.tube.color-K { border-color: var(--rim-K); box-shadow: var(--tube-shadow), inset 0 -18px 14px -10px var(--rim-K); }
 
 /* Target tubes get the same color hint, scaled */
 .tube.target-tube.color-R { border-color: var(--rim-R); }
 .tube.target-tube.color-G { border-color: var(--rim-G); }
 .tube.target-tube.color-B { border-color: var(--rim-B); }
 .tube.target-tube.color-Y { border-color: var(--rim-Y); }
+.tube.target-tube.color-P { border-color: var(--rim-P); }
+.tube.target-tube.color-K { border-color: var(--rim-K); }
 
 /* ----- SHIFT TUBE (World 6) -----
    A rainbow conic-gradient rim signals "balls transform on entry". The
@@ -1050,6 +1063,32 @@ body[data-theme="modern"] .tube.mixer {
   width: 24px;
   padding: 0;
   box-shadow: 0 2px 6px rgba(160, 60, 200, 0.4);
+}
+
+/* ----- BLENDER TUBE (World 8) -----
+   Recipe-based mixing: ingredient pairs become a specific new pigment. */
+.tube.blender {
+  border-color: rgba(50, 150, 120, 0.75);
+  border-style: solid;
+  border-width: 4px;
+  background:
+    linear-gradient(135deg, rgba(255, 231, 76, 0.16), rgba(0, 213, 255, 0.12), rgba(0, 245, 160, 0.16)),
+    var(--tube-bg);
+}
+body[data-theme="modern"] .tube.blender {
+  border-color: rgba(0, 245, 160, 0.65);
+  background:
+    linear-gradient(135deg, rgba(255, 231, 76, 0.12), rgba(0, 213, 255, 0.16), rgba(0, 245, 160, 0.14)),
+    var(--tube-bg);
+}
+.tube.target-tube.blender { border-width: 3px; }
+
+.blender-badge {
+  font-size: 16px;
+  background: var(--card-bg);
+  width: 24px;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(50, 150, 120, 0.4);
 }
 
 /* ----- VIOLATION TOAST -----
@@ -1142,6 +1181,8 @@ body.reduce-anim .ball.just-mixed { animation: none; }
 .ball-G { background: var(--ball-G); color: #00f5a0; }
 .ball-B { background: var(--ball-B); color: #00d5ff; }
 .ball-Y { background: var(--ball-Y); color: #ffe74c; }
+.ball-P { background: var(--ball-P); color: #9b5cff; }
+.ball-K { background: var(--ball-K); color: #252a32; }
 
 /* Joker = rainbow wildcard. Theme-aware: soft pastel rainbow in nostalgic,
    neon rainbow in modern. Conic-gradient gives the unmistakable spectrum look. */
@@ -1347,14 +1388,16 @@ button {
   .tube-badges { top: -16px; gap: 2px; }
   .lock-badge,
   .shift-badge,
-  .mixer-badge {
+  .mixer-badge,
+  .blender-badge {
     min-width: 20px;
     height: 20px;
     font-size: 11px;
     padding: 0 5px;
   }
   .shift-badge,
-  .mixer-badge {
+  .mixer-badge,
+  .blender-badge {
     width: 20px;
     font-size: 13px;
     padding: 0;
