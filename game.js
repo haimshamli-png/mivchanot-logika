@@ -68,12 +68,24 @@ function showViolation(tubeIndex, rule, ctx) {
   const gapTop = targetSec ? targetSec.getBoundingClientRect().bottom : gs.top;
   const gapMid = (gapTop + tubesTop) / 2;
   toast.style.top = Math.max(8, Math.round(gapMid - gs.top)) + 'px';
-  setTimeout(() => toast.classList.add('fading'), repeat ? 1800 : 1100);
-  setTimeout(() => toast.remove(), repeat ? 2200 : 1500);
+  // The full (text-heavy) hint lingers ~3s to give time to read; the short
+  // icon hint stays brief. Either way, the player's next tap dismisses it
+  // instantly (see dismissViolationToast), so the long window never nags.
+  setTimeout(() => toast.classList.add('fading'), repeat ? 3000 : 1100);
+  setTimeout(() => toast.remove(), repeat ? 3350 : 1500);
 }
 
 function clearViolation() {
   state.lastViolation = null;
+}
+
+// Pull any visible hint off the screen. Called at the start of every tap so
+// continuing to play dismisses the hint immediately — independent of the
+// escalation counter (clearViolation), which must NOT reset here or the
+// "same rule twice → full sentence" logic would never fire.
+function dismissViolationToast() {
+  if (!el.gameSection) return;
+  el.gameSection.querySelectorAll('.violation-toast').forEach((t) => t.remove());
 }
 
 /* =====================================================================
@@ -426,6 +438,9 @@ function loadLevelData(level) {
 }
 
 function onTubeTap(index) {
+  // Any tap is "continuing to play" → clear a lingering hint right away.
+  // A fresh violation later in this same call re-adds its own toast.
+  dismissViolationToast();
   if (state.selectedTubeIndex === index) {
     state.selectedTubeIndex = null;
     renderGame(true);

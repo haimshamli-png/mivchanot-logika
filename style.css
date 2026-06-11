@@ -1004,7 +1004,7 @@ body[data-theme="modern"] .tube.mixer {
   background: rgba(40, 18, 8, 0.92);
   color: #f4e4c1;
   font-family: var(--font-main);
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 600;
   padding: 6px 12px;
   border-radius: 999px;
@@ -1018,13 +1018,13 @@ body[data-theme="modern"] .tube.mixer {
 }
 .violation-toast.full {
   white-space: normal;
-  max-width: 240px;
+  max-width: 280px;
   min-width: 180px;
   border-radius: 12px;
-  font-size: 12.5px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.5;
   font-weight: 500;
-  padding: 10px 14px;
+  padding: 11px 16px;
 }
 .violation-toast.fading {
   animation: violationOut 0.35s ease-out forwards;
