@@ -157,7 +157,15 @@ const WORLDS = [
       // 10: master — 4 colors + 2 jokers, heavily mixed
       { capacities: [4,4,4,4,4], optimalMoves: 17,
         initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','J'],['J','G'],[]],
-        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],['J','J']] }
+        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],['J','J']] },
+      // 11 MASTER — cross-mechanic: a color-locked buffer turns the joker into
+      // a key. Tube 3 accepts only Blue or a joker, so the single buffer is
+      // useless for R/G/Y — the player must spend jokers to park there. Without
+      // the lock this solves in 15; the lock forces 5 extra moves of planning.
+      { capacities: [4,4,4,4], optimalMoves: 20,
+        initial: [['G','R','J'],['R','G','B'],['B','J','R','G'],[]],
+        target:  [['R','R','R'],['G','G','G'],['B','B'],['J','J']],
+        tubeColors: [null, null, null, 'B'] }
     ]
   },
 
