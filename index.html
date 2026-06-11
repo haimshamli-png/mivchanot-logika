@@ -52,6 +52,10 @@
       <!-- Solo header -->
       <header id="solo-header">
         <button id="back-btn" class="back-btn" title="חזרה">←</button>
+        <div class="world-context">
+          <span class="info-label">עולם</span>
+          <span id="world-name" class="world-name">—</span>
+        </div>
         <div class="info-block">
           <span class="info-label">שלב</span>
           <span id="level-number" class="info-value">1</span>
@@ -80,6 +84,7 @@
         <div class="target-label">🎯 יעד</div>
         <div id="target-tubes" class="tubes-container target"></div>
       </section>
+      <section id="rule-card" class="rule-card hidden"></section>
 
       <section id="game-section">
         <div id="game-tubes" class="tubes-container game"></div>
@@ -101,6 +106,7 @@
         <div id="win-stars" class="stars-row big-stars"></div>
         <p>סיימת ב-<strong><span id="win-moves">0</span></strong> מהלכים
           <span class="optimal-hint">(אופטימלי: <span id="win-optimal">0</span>)</span></p>
+        <p id="win-star-hint" class="star-hint"></p>
         <div class="win-buttons">
           <button id="back-to-select-btn" class="btn-secondary">לבחירת שלבים</button>
           <button id="next-btn" class="btn-primary">השלב הבא →</button>

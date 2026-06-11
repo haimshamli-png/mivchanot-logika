@@ -154,6 +154,7 @@ const el = {
 
   soloHeader: document.getElementById('solo-header'),
   backBtn: document.getElementById('back-btn'),
+  worldName: document.getElementById('world-name'),
   levelNumber: document.getElementById('level-number'),
   moves: document.getElementById('moves'),
   settingsBtn: document.getElementById('settings-btn'),
@@ -166,7 +167,9 @@ const el = {
   settingsBtnTa: document.getElementById('settings-btn-ta'),
   quickFlash: document.getElementById('quick-flash'),
 
+  targetSection: document.getElementById('target-section'),
   targetTubes: document.getElementById('target-tubes'),
+  ruleCard: document.getElementById('rule-card'),
   gameSection: document.getElementById('game-section'),
   gameTubes: document.getElementById('game-tubes'),
   undoBtn: document.getElementById('undo-btn'),
@@ -176,6 +179,7 @@ const el = {
   winMoves: document.getElementById('win-moves'),
   winOptimal: document.getElementById('win-optimal'),
   winStars: document.getElementById('win-stars'),
+  winStarHint: document.getElementById('win-star-hint'),
   nextBtn: document.getElementById('next-btn'),
   backToSelectBtn: document.getElementById('back-to-select-btn'),
   completeOverlay: document.getElementById('game-complete-overlay'),
@@ -355,6 +359,34 @@ function formatStars(n) {
   return n.toFixed(2).replace(/0$/, '').replace(/\.$/, '');
 }
 
+function getCurrentWorld() {
+  return WORLDS.find(w => w.id === state.currentWorld);
+}
+
+function getRuleSummary() {
+  const parts = [];
+  if (state.capacities.some(c => c !== 4)) {
+    parts.push('מבחנות נמוכות מחזיקות פחות כדורים.');
+  }
+  if (state.tubeColors.some(Boolean)) {
+    parts.push('מבחנה צבעונית מקבלת רק את הצבע שלה או ג׳וקר.');
+  }
+  if (state.locks.length > 0) {
+    parts.push('מבחנה נעולה נפתחת אחרי מספר המהלכים שעל התג.');
+  }
+  if (state.shifts.length > 0) {
+    parts.push('שיפט משנה כדור נכנס לצבע הבא במחזור.');
+  }
+  if (state.mixers.length > 0) {
+    parts.push('מערבל הופך שני צבעים שונים לג׳וקר אחד.');
+  }
+  const hasJoker = state.tubes.concat(state.target).some(t => t.includes('J'));
+  if (hasJoker) {
+    parts.push('ג׳וקר מתאים לכל צבע וכל צבע מתאים עליו.');
+  }
+  return parts;
+}
+
 function renderLevelSelect() {
   el.worldsContainer.innerHTML = '';
   visibleWorlds().forEach(world => {
@@ -375,10 +407,12 @@ function renderLevelSelect() {
     `;
 
     if (!unlocked) {
+      const missing = Math.max(0, world.unlockStars - getTotalStars());
       section.innerHTML = header + `
         <div class="world-locked-overlay">
           <span class="lock-big">🔒</span>
           השג ${world.unlockStars} כוכבים כדי לפתוח את העולם הזה
+          <span class="missing-stars">חסרים ${formatStars(missing)} כוכבים</span>
         </div>
       `;
     } else {
@@ -570,13 +604,22 @@ function handleWin() {
 }
 
 function showSoloWin() {
-  const world = WORLDS.find(w => w.id === state.currentWorld);
+  const world = getCurrentWorld();
   const level = world.levels[state.currentLevel];
   const stars = computeStars(state.moveCount, level.optimalMoves);
   recordResult(state.currentWorld, state.currentLevel, state.moveCount, stars);
   el.winMoves.textContent = state.moveCount;
   el.winOptimal.textContent = level.optimalMoves;
   el.winStars.innerHTML = renderStarsRow(stars, 3, false);
+  const extra = Math.max(0, state.moveCount - level.optimalMoves);
+  const step = Math.max(1, Math.ceil(level.optimalMoves / 6));
+  const grace = Math.ceil(step / 2);
+  if (stars === 3) {
+    el.winStarHint.textContent = '3 כוכבים: נכנסת לטווח האופטימלי.';
+  } else {
+    el.winStarHint.textContent =
+      `קיבלת ${formatStars(stars)} כוכבים. צריך ${Math.max(0, extra - grace)} פחות מהלכים ל-3 כוכבים.`;
+  }
   triggerCelebration();
   const isLastInWorld = state.currentLevel >= world.levels.length - 1;
   el.nextBtn.classList.toggle('hidden', isLastInWorld);
@@ -712,26 +755,32 @@ function renderTube(tube, index, isTarget, capacity) {
   if (isMixer) tubeEl.classList.add('mixer');
   if (!isTarget) {
     if (state.selectedTubeIndex === index) tubeEl.classList.add('selected');
+    const badgeStrip = document.createElement('div');
+    badgeStrip.className = 'tube-badges';
     const lock = tubeLockInfo(index);
     if (lock.locked) {
       tubeEl.classList.add('locked');
       const badge = document.createElement('div');
       badge.className = 'lock-badge';
       badge.textContent = `🔒${lock.remaining}`;
-      tubeEl.appendChild(badge);
+      badge.title = `נפתחת בעוד ${lock.remaining} מהלכים`;
+      badgeStrip.appendChild(badge);
     }
     if (isShift) {
       const badge = document.createElement('div');
       badge.className = 'shift-badge';
       badge.textContent = '🔄';
-      tubeEl.appendChild(badge);
+      badge.title = 'שיפט צבע';
+      badgeStrip.appendChild(badge);
     }
     if (isMixer) {
       const badge = document.createElement('div');
       badge.className = 'mixer-badge';
       badge.textContent = '🧪';
-      tubeEl.appendChild(badge);
+      badge.title = 'מערבל';
+      badgeStrip.appendChild(badge);
     }
+    if (badgeStrip.children.length > 0) tubeEl.appendChild(badgeStrip);
     tubeEl.addEventListener('click', () => onTubeTap(index));
   }
   tube.forEach((color, ballIndex) => {
@@ -745,15 +794,30 @@ function renderTube(tube, index, isTarget, capacity) {
   return tubeEl;
 }
 
+function renderRuleCard() {
+  const rules = getRuleSummary();
+  if (rules.length === 0 || state.mode !== 'solo') {
+    el.ruleCard.classList.add('hidden');
+    el.ruleCard.textContent = '';
+    return;
+  }
+  el.ruleCard.classList.remove('hidden');
+  el.ruleCard.innerHTML = `<span class="rule-icon">ⓘ</span><span>${rules.join(' ')}</span>`;
+}
+
 function renderGame(suppressOpenAnim = false) {
   if (state.mode === 'solo') {
+    const world = getCurrentWorld();
+    el.worldName.textContent = world ? `${world.icon} ${world.name}` : '—';
     el.levelNumber.textContent = state.currentLevel + 1;
     el.moves.textContent = state.moveCount;
   }
   document.body.classList.toggle('no-open-anim', suppressOpenAnim);
+  el.targetSection.classList.toggle('large-target', state.target.length >= 6);
   el.targetTubes.innerHTML = '';
   state.target.forEach((tube, i) =>
     el.targetTubes.appendChild(renderTube(tube, i, true, state.capacities[i])));
+  renderRuleCard();
   el.gameTubes.innerHTML = '';
   state.tubes.forEach((tube, i) =>
     el.gameTubes.appendChild(renderTube(tube, i, false, state.capacities[i])));

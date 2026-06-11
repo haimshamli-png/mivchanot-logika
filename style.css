@@ -208,6 +208,15 @@ header {
   gap: 6px;
 }
 
+.world-context {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+}
+
 .info-label {
   opacity: 0.7;
   font-size: 13px;
@@ -218,6 +227,15 @@ header {
   font-weight: 700;
   font-size: 18px;
   color: var(--text-accent);
+}
+
+.world-name {
+  color: var(--text-accent);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .info-sep {
@@ -328,6 +346,14 @@ header {
   font-size: 24px;
   margin-bottom: 6px;
   display: block;
+}
+
+.missing-stars {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-accent);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .level-grid {
@@ -493,6 +519,14 @@ body[data-theme="modern"] .stars-row .star::before {
   font-size: 12px;
   opacity: 0.6;
   margin-top: 4px;
+}
+
+.star-hint {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  max-width: 320px;
+  align-self: center;
 }
 
 /* ----- TIME ATTACK CARD (on level select) ----- */
@@ -752,6 +786,12 @@ body.reduce-anim .quick-flash { animation: none; opacity: 0; }
   transition: background 0.4s ease, transform 0.4s ease;
 }
 
+#target-section.large-target {
+  padding: 16px 18px;
+  transform: rotate(var(--card-rotation)) scale(1.04);
+  transform-origin: center top;
+}
+
 .target-label {
   font-size: 13px;
   margin-bottom: 10px;
@@ -780,6 +820,40 @@ body.reduce-anim .quick-flash { animation: none; opacity: 0; }
 
 .tubes-container.target {
   gap: 8px;
+}
+
+#target-section.large-target .tubes-container.target {
+  gap: 10px;
+}
+
+#target-section.large-target .tube.target-tube {
+  width: 40px;
+  height: calc(var(--cap, 4) * 32px + 22px);
+}
+
+#target-section.large-target .target-tube .ball {
+  width: 28px;
+  height: 28px;
+}
+
+.rule-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.rule-icon {
+  color: var(--text-accent);
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 /* ----- TUBES ----- */
@@ -865,23 +939,37 @@ body[data-theme="modern"] .tube.locked {
 }
 body.no-open-anim .tube.locked .ball { animation: none; }
 
-.lock-badge {
+.tube-badges {
   position: absolute;
-  top: -10px;
+  top: -18px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.lock-badge,
+.shift-badge,
+.mixer-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 23px;
+  height: 23px;
   background: var(--text-accent);
   color: var(--card-bg);
   font-family: var(--font-main);
   font-size: 12px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 0 6px;
   border-radius: 999px;
   border: 1px solid var(--panel-border);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
   white-space: nowrap;
-  z-index: 2;
-  pointer-events: none;
   letter-spacing: 0.5px;
   direction: ltr;
   unicode-bidi: isolate;
@@ -926,31 +1014,16 @@ body[data-theme="modern"] .lock-badge {
 }
 
 .shift-badge {
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
   font-size: 16px;
   background: var(--card-bg);
-  border: 1px solid var(--panel-border);
-  border-radius: 999px;
   width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  pointer-events: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  padding: 0;
   animation: shiftSpin 4s linear infinite;
 }
 body.reduce-anim .shift-badge { animation: none; }
 @keyframes shiftSpin {
-  to { transform: translateX(-50%) rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
-
-/* If a tube is both locked and shift, lock badge wins position; hide shift */
-.tube.locked .shift-badge { display: none; }
 
 /* ----- MIXER TUBE (World 7) -----
    Mismatched colors entering this tube fuse into a joker. Bubbling effect
@@ -972,24 +1045,12 @@ body[data-theme="modern"] .tube.mixer {
 .tube.target-tube.mixer { border-width: 3px; }
 
 .mixer-badge {
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
   font-size: 16px;
   background: var(--card-bg);
-  border: 1px solid var(--panel-border);
-  border-radius: 999px;
   width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  pointer-events: none;
+  padding: 0;
   box-shadow: 0 2px 6px rgba(160, 60, 200, 0.4);
 }
-.tube.locked .mixer-badge { display: none; }
 
 /* ----- VIOLATION TOAST -----
    A single centered hint floating in the empty band between the target card
@@ -1267,6 +1328,37 @@ button {
   .tube.game { width: 44px; height: calc(var(--cap, 4) * 38px + 28px); }
   .ball { width: 34px; height: 34px; }
   .tubes-container { gap: 5px; }
+  header { gap: 8px; padding: 10px 12px; }
+  .world-name { font-size: 13px; max-width: 130px; }
+  .info-value { font-size: 16px; }
+  .rule-card { font-size: 11px; padding: 8px 10px; }
+  #target-section.large-target {
+    padding: 14px 12px;
+    transform: rotate(var(--card-rotation));
+  }
+  #target-section.large-target .tube.target-tube {
+    width: 34px;
+    height: calc(var(--cap, 4) * 28px + 18px);
+  }
+  #target-section.large-target .target-tube .ball {
+    width: 24px;
+    height: 24px;
+  }
+  .tube-badges { top: -16px; gap: 2px; }
+  .lock-badge,
+  .shift-badge,
+  .mixer-badge {
+    min-width: 20px;
+    height: 20px;
+    font-size: 11px;
+    padding: 0 5px;
+  }
+  .shift-badge,
+  .mixer-badge {
+    width: 20px;
+    font-size: 13px;
+    padding: 0;
+  }
   .level-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .level-card .num { font-size: 18px; }
   body { padding: 10px; }
