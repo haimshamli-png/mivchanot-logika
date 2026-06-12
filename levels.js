@@ -510,42 +510,57 @@ const WORLDS = [
         initial: [['B'],['Y'],[]],
         target:  [[],[],['G']],
         blenders: [2] },
-      // 2: make two greens, moving each product out before the next recipe.
-      { capacities: [4,4,4,4], optimalMoves: 6,
-        initial: [['B','B'],['Y','Y'],[],[]],
-        target:  [[],[],[],['G','G']],
+      // 2: three greens, with ingredients interleaved across two stacks.
+      { capacities: [4,4,4,4], optimalMoves: 9,
+        initial: [['B','Y','B'],['Y','B','Y'],[],[]],
+        target:  [[],[],[],['G','G','G']],
         blenders: [2] },
-      // 3: two recipes in one level — green and purple need different pairs.
-      { capacities: [4,4,4,4,4], optimalMoves: 6,
-        initial: [['R','B'],['B','Y'],[],[],[]],
-        target:  [[],[],[],['G'],['P']],
+      // 3: three products, and the B ingredients must be spent in the right order.
+      { capacities: [4,4,4,4,4], optimalMoves: 8,
+        initial: [['R','B','Y'],['B','Y'],['B'],[],[]],
+        target:  [[],[],[],['G','G'],['P']],
         blenders: [2] },
-      // 4: chain recipe — first make green, then combine it with red.
-      { capacities: [4,4,4,4], optimalMoves: 3,
-        initial: [['B'],['Y'],['R'],[]],
-        target:  [[],[],[],['K']],
-        blenders: [3] },
+      // 4: first chain recipe, plus one green that must be preserved.
+      { capacities: [4,4,4,4,4], optimalMoves: 7,
+        initial: [['B','Y','B'],['Y','R'],[],[],[]],
+        target:  [[],[],[],['K'],['G']],
+        blenders: [2] },
       // 5: preserve one green, then make a second green as material for black.
-      { capacities: [4,4,4,4,4], optimalMoves: 6,
-        initial: [['B','B'],['Y','Y'],['R'],[],[]],
-        target:  [[],[],[],['G'],['K']],
-        blenders: [4] },
-      // 6: the created black must be routed into a color-locked destination.
-      { capacities: [4,4,4,4,4], optimalMoves: 4,
-        initial: [['B'],['Y'],['R'],[],[]],
-        target:  [[],[],[],[],['K']],
-        blenders: [3],
-        tubeColors: [null, null, null, null, 'K'] },
-      // 7: small blender — capacity is tight, but recipes still leave room.
-      { capacities: [4,4,2,4], optimalMoves: 6,
-        initial: [['B','B'],['Y','Y'],[],[]],
-        target:  [[],[],[],['G','G']],
+      { capacities: [4,4,4,4,4], optimalMoves: 9,
+        initial: [['B','Y','B'],['Y','R','B'],['R'],[],[]],
+        target:  [[],[],['K'],['G'],['P']],
         blenders: [2] },
-      // 8 MASTER: two products and a chained product, with one shared lab tube.
-      { capacities: [4,4,4,4,4,4], optimalMoves: 9,
-        initial: [['R','B','B'],['Y','Y'],['B','R'],[],[],[]],
-        target:  [[],[],[],['K'],['G'],['P']],
-        blenders: [3] }
+      // 6: small blender — capacity is tight, and three products must exit cleanly.
+      { capacities: [4,4,2,4,4], optimalMoves: 9,
+        initial: [['B','Y','B'],['Y','B','Y'],[],[],[]],
+        target:  [[],[],[],['G','G'],['G']],
+        blenders: [2] },
+      // 7: products must be routed into color-locked destinations.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 8,
+        initial: [['R','B','Y'],['B','Y'],['B'],[],[],[]],
+        target:  [[],[],[],['G'],['P'],['G']],
+        blenders: [2],
+        tubeColors: [null, null, null, 'G', 'P', 'G'] },
+      // 8: delayed lab access. Prepare the order while the blender is closed.
+      { capacities: [4,4,4,4,4], optimalMoves: 12,
+        initial: [['B','Y','B'],['Y','R','B'],['R'],[],[]],
+        target:  [[],[],['K'],['G'],['P']],
+        blenders: [2],
+        locks: [{ tubeIndex: 2, unlockAt: 4 }] },
+      // 9 MASTER: one lab tube, four products, and a chain product.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 13,
+        initial: [['B','Y','B','R'],['Y','B','R'],['B','Y'],[],[],[]],
+        target:  [[],[],[],['K'],['G','G'],['P']],
+        blenders: [3] },
+      // 10 MASTER FINAL: color-locked outputs and a locked shared lab force
+      // staging. Two K targets require two separate green intermediates before
+      // the remaining ingredients can become G and P.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 19,
+        initial: [['B','Y','R','B'],['Y','R','B'],['R','Y','B'],[],[],[]],
+        target:  [[],[],[],['K','K'],['G'],['P']],
+        blenders: [3],
+        locks: [{ tubeIndex: 3, unlockAt: 5 }],
+        tubeColors: [null, null, null, null, null, 'P'] }
     ]
   }
 ];

@@ -33,13 +33,19 @@ function accepts(level, tubeIndex, ball) {
   return !color || ball === color || ball === 'J';
 }
 
-function nextStates(level, tubes) {
+function isLocked(level, tubeIndex, moves) {
+  return (level.locks || []).some(lock => lock.tubeIndex === tubeIndex && moves < lock.unlockAt);
+}
+
+function nextStates(level, tubes, moves) {
   const states = [];
   for (let from = 0; from < tubes.length; from++) {
     if (tubes[from].length === 0) continue;
+    if (isLocked(level, from, moves)) continue;
     const moving = tubes[from][tubes[from].length - 1];
     for (let to = 0; to < tubes.length; to++) {
       if (from === to) continue;
+      if (isLocked(level, to, moves)) continue;
       if (!accepts(level, to, moving)) continue;
       const dest = tubes[to];
       const destTop = dest.length ? dest[dest.length - 1] : null;
@@ -71,7 +77,7 @@ function shortest(level) {
   for (let i = 0; i < queue.length; i++) {
     const current = queue[i];
     if (isWin(current.tubes, level.target)) return current.moves;
-    for (const next of nextStates(level, current.tubes)) {
+    for (const next of nextStates(level, current.tubes, current.moves)) {
       const k = key(next);
       if (seen.has(k)) continue;
       seen.add(k);
@@ -82,12 +88,14 @@ function shortest(level) {
 }
 
 assert(pigmentWorld, 'pigment world should exist');
+const actuals = [];
 pigmentWorld.levels.forEach((level, index) => {
   const actual = shortest(level);
+  actuals.push(actual);
   assert.strictEqual(
     actual,
     level.optimalMoves,
-    `world 8 level ${index + 1} should have BFS-verified optimalMoves`
+    `world 8 level ${index + 1} should have BFS-verified optimalMoves; actuals=${actuals.join(',')}`
   );
 });
 
