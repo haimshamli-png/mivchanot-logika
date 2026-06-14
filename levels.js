@@ -38,8 +38,8 @@ const WORLDS = [
       { capacities: [4,4,4,4,4], optimalMoves: 10,
         initial: [['R','G'],['B','Y'],['Y','R'],['G','B'],[]],
         target:  [['R','R'],['G','G'],['B','B'],['Y','Y'],[]] },
-      { capacities: [4,4,4,4,4], optimalMoves: 10,
-        initial: [['R','B','G'],['G','R','Y'],['B','Y'],['Y','R','B'],['G']],
+      { capacities: [4,4,4,4,4], optimalMoves: 11,
+        initial: [['R','R','B'],['G','B','G'],['R','Y'],['Y','B','G'],['Y']],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]] },
       { capacities: [4,4,4,4,4], optimalMoves: 12,
         initial: [['R','G','B'],['G','B','R'],['B','R','G'],['G','R','B'],[]],
@@ -50,14 +50,17 @@ const WORLDS = [
       { capacities: [4,4,4,4], optimalMoves: 14,
         initial: [['R','G','R'],['B','R','G'],['G','B','B'],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],[]] },
-      { capacities: [4,4,4,4,4], optimalMoves: 15,
-        initial: [['Y','R','B'],['G','Y','R'],['B','G'],['R','B','Y'],['G']],
+      // buffer scarcity: the only spare tube holds a single ball — you can
+      // park just ONE ball at a time, so the question shifts from "where to
+      // move" to "when is a move even allowed".
+      { capacities: [4,4,4,4,1], optimalMoves: 18,
+        initial: [['B','R','Y'],['G','G','B'],['B','R','Y'],['R','Y','G'],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]] },
       { capacities: [4,4,4,4,4], optimalMoves: 17,
         initial: [['R','G','Y'],['B','R','G'],['Y','B'],['G','Y','R'],['B']],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]] },
-      { capacities: [4,4,4,4,4], optimalMoves: 17,
-        initial: [['B','Y','G'],['R','B','Y'],['G','R','B'],['Y','G','R'],[]],
+      { capacities: [4,4,4,4,4], optimalMoves: 18,
+        initial: [['G','Y','G'],['B','R','Y'],['Y','B','R'],['R','G','B'],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]] },
       { capacities: [4,4,4,4,4], optimalMoves: 24,
         initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','G'],['Y','R','G','B'],[]],
@@ -138,26 +141,36 @@ const WORLDS = [
       { capacities: [4,4,4,4], optimalMoves: 7,
         initial: [['R','J','G'],['G','J','R'],['B','B'],[]],
         target:  [['R','R'],['G','G'],['B','B'],['J','J']] },
-      // 6: joker in 4-color, single
-      { capacities: [4,4,4,4,4], optimalMoves: 7,
-        initial: [['R','Y'],['G','J','B'],['B','R'],['Y','G'],[]],
-        target:  [['R','R'],['G','G'],['B','B'],['Y','Y'],['J']] },
+      // 6 MIDPOINT — the back half opens by re-casting the joker: it is no
+      // longer a free buffer but a FOUNDATION that must settle at the bottom
+      // under the reds (target ['J','J','R','R']). A joker pinned beneath color
+      // can't be borrowed mid-solve, so every move is forced — a single optimal
+      // path. This lifts the midpoint above L7 and starts the climb.
+      { capacities: [4,4,4,4], optimalMoves: 11,
+        initial: [['R','J','B'],['G','J','R'],['B','G'],[]],
+        target:  [['J','J','R','R'],['G','G'],['B','B'],[]] },
       // 7: joker + mixed capacities (cross-mechanic taste of World 2)
       { capacities: [4,4,2,4,4], optimalMoves: 11,
         initial: [['R','J','G'],['B','Y'],['J'],['Y','R'],['G','B']],
         target:  [['R','R'],['G','G'],['J','J'],['Y','Y'],['B','B']] },
-      // 8: 2 jokers, 4 colors
+      // 8: joker-foundation returns at 4 colors — the two jokers must be buried
+      // under the reds while R/G/B/Y all sort, so the joker stops being a
+      // dumping ground and becomes a scheduled deposit.
       { capacities: [4,4,4,4,4], optimalMoves: 14,
-        initial: [['R','J','G'],['B','J','Y'],['Y','R'],['G','B'],[]],
-        target:  [['R','R'],['G','G'],['B','B'],['Y','Y'],['J','J']] },
-      // 9: tight 3-color with joker buried deep
+        initial: [['Y','B','J','R'],['G','G','J','R'],['B','Y','B'],['Y','G'],[]],
+        target:  [['J','J','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]] },
+      // 9: tight 3-color, joker-foundation under red, only ONE empty buffer.
+      // The space is so constrained that the solution is nearly forced — high
+      // uniqueness drives the cognitive load past the L8 peak.
       { capacities: [4,4,4,4], optimalMoves: 15,
-        initial: [['R','G','B'],['B','R','G'],['G','B','J'],['R']],
-        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['J']] },
-      // 10: master — 4 colors + 2 jokers, heavily mixed
-      { capacities: [4,4,4,4,4], optimalMoves: 17,
-        initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','J'],['J','G'],[]],
-        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],['J','J']] },
+        initial: [['B','G','R','J'],['G','R','B','J'],['B','G'],[]],
+        target:  [['J','J','R','R'],['G','G','G'],['B','B','B'],[]] },
+      // 10: joker-foundation under SCARCE buffer — the only spare tube holds 2
+      // balls, so the joker can no longer be parked freely while you stage the
+      // colors. Tight space + buried jokers = the hardest planning before L11.
+      { capacities: [4,4,4,4,2], optimalMoves: 17,
+        initial: [['Y','B','J','R'],['G','Y','J','G'],['B','R','B','G'],['Y'],[]],
+        target:  [['J','J','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]] },
       // 11 MASTER — cross-mechanic: a color-locked buffer turns the joker into
       // a key. Tube 3 accepts only Blue or a joker, so the single buffer is
       // useless for R/G/Y — the player must spend jokers to park there. Without
@@ -180,77 +193,97 @@ const WORLDS = [
     // Tube i is fully blocked (source AND destination) while state.moveCount < N.
     // All optimalMoves below are BFS-verified with the lock constraint active.
     levels: [
-      // 1: intro — single source-lock, gentle 4t/3c
+      // 1: INTRO — single source-lock, 3 tubes, 2 colors. Teaches "park & wait":
+      // the G tube is sealed for the first move, so the spare G has to idle in
+      // the empty buffer and only lands home once the lock opens. Gentlest lock.
+      { capacities: [4,4,4], optimalMoves: 2,
+        initial: [['R','R','G'],['G'],[]],
+        target:  [['R','R'],['G','G'],[]],
+        locks:   [{ tubeIndex: 1, unlockAt: 1 }] },
+      // 2: single source-lock, gentle 4t/3c
       { capacities: [4,4,4,4], optimalMoves: 6,
         initial: [['R','G'],['G','R'],['B'],['B']],
         target:  [['R','R'],['G','G'],['B','B'],[]],
         locks:   [{ tubeIndex: 0, unlockAt: 3 }] },
-      // 2: lock on a different source, fresh layout
+      // 3: lock on a different source, fresh layout
       { capacities: [4,4,4,4], optimalMoves: 6,
         initial: [['R','B'],['G','R'],['B','G'],[]],
         target:  [['R','R'],['G','G'],['B','B'],[]],
         locks:   [{ tubeIndex: 0, unlockAt: 4 }] },
-      // 3: same base — longer lock = bigger penalty if rushed
+      // 4: same base — longer lock = bigger penalty if rushed
       { capacities: [4,4,4,4], optimalMoves: 8,
         initial: [['R','B'],['G','R'],['B','G'],[]],
         target:  [['R','R'],['G','G'],['B','B'],[]],
         locks:   [{ tubeIndex: 1, unlockAt: 5 }] },
-      // 4: 4 colors enter
+      // 5: 4 colors enter
       { capacities: [4,4,4,4,4], optimalMoves: 8,
         initial: [['R','G'],['G','R'],['B','Y'],['Y','B'],[]],
         target:  [['R','R'],['G','G'],['B','B'],['Y','Y'],[]],
         locks:   [{ tubeIndex: 0, unlockAt: 5 }] },
-      // 5: cross-mechanic — joker hidden behind a lock
+      // 6: cross-mechanic — joker hidden behind a lock
       { capacities: [4,4,4,4], optimalMoves: 9,
         initial: [['R','G'],['G','J','R'],['B','B'],[]],
         target:  [['R','R'],['G','G'],['B','B'],['J']],
         locks:   [{ tubeIndex: 1, unlockAt: 4 }] },
-      // 6: 3 colors, longer puzzle, lock bites
+      // 7: 3 colors, longer puzzle, lock bites
       { capacities: [4,4,4,4], optimalMoves: 11,
         initial: [['R','G','R'],['G','R','G'],['B','B','B'],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],[]],
         locks:   [{ tubeIndex: 0, unlockAt: 4 }] },
-      // 7: cross-mechanic — small (cap 2) + joker + lock
+      // 8: cross-mechanic — small (cap 2) + joker + lock
       { capacities: [4,4,2,4], optimalMoves: 10,
         initial: [['R','G'],['G','J','R'],['B'],['B']],
         target:  [['R','R'],['G','G'],['J'],['B','B']],
         locks:   [{ tubeIndex: 1, unlockAt: 5 }] },
-      // 8 MASTER: two staggered locks on content tubes
+      // 9 MASTER: two staggered locks on content tubes
       { capacities: [4,4,4,4,4], optimalMoves: 13,
         initial: [['R','G','B'],['G','B','R'],['B','R','G'],[],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],[],[]],
         locks:   [{ tubeIndex: 0, unlockAt: 6 }, { tubeIndex: 1, unlockAt: 6 }] },
-      // 9 MASTER: 4 colors, two locks with different timings
-      { capacities: [4,4,4,4,4], optimalMoves: 22,
-        initial: [['R','G','Y'],['B','R','G'],['Y','B'],['G','Y','R'],['B']],
-        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]],
-        locks:   [{ tubeIndex: 0, unlockAt: 4 }, { tubeIndex: 1, unlockAt: 7 }] },
-      // 10 MASTER FINAL: 6 tubes, 4 colors, two heavy locks
+      // 10 BRIDGE: 4 colors, 6 tubes, single mid lock. Spans the old 13→22
+      // cliff so the jump into the master tier is one step, not a wall. Two
+      // spare buffers keep it tractable (opt 17) while the lock adds real plan.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 17,
+        initial: [['Y','R','G'],['G','B','R'],['R','Y','B'],['B','G','Y'],[],[]],
+        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[],[]],
+        locks:   [{ tubeIndex: 0, unlockAt: 8 }] },
+      // 11: shallow deep-lock, moved early — lowest cognitive load of the back
+      // half. One very late lock on a content tube; route around the sealed
+      // stack, but the rest is a clean 4x4 sort.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 21,
+        initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','G'],['Y','R','G','B'],[],[]],
+        target:  [['R','R','R','R'],['G','G','G','G'],['B','B','B','B'],['Y','Y','Y','Y'],[],[]],
+        locks:   [{ tubeIndex: 0, unlockAt: 15 }] },
+      // 12 MASTER: 6 tubes, 4 colors, two heavy locks
       { capacities: [4,4,4,4,4,4], optimalMoves: 22,
         initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','G'],['Y','R','G','B'],[],[]],
         target:  [['R','R','R','R'],['G','G','G','G'],['B','B','B','B'],['Y','Y','Y','Y'],[],[]],
         locks:   [{ tubeIndex: 0, unlockAt: 6 }, { tubeIndex: 2, unlockAt: 6 }] },
-      // 11 — joker mix + single deep lock (22 moves)
-      { capacities: [4,4,4,4,4], optimalMoves: 22,
+      // 13 — cross-mechanic: joker mix + single deep lock (23 moves). Deeper
+      // lock than the W3 joker levels — the buffer is sealed long enough that
+      // the jokers must be parked and re-fetched.
+      { capacities: [4,4,4,4,4], optimalMoves: 23,
         initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','J'],['J','G'],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],['J','J']],
-        locks:   [{ tubeIndex: 4, unlockAt: 6 }] },
-      // 12 — 6-tube 4-color with mid-deep lock (23 moves)
+        locks:   [{ tubeIndex: 4, unlockAt: 7 }] },
+      // 14 — 6-tube 4-color with mid-deep lock (23 moves)
       { capacities: [4,4,4,4,4,4], optimalMoves: 23,
         initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','G'],['Y','R','G','B'],[],[]],
         target:  [['R','R','R','R'],['G','G','G','G'],['B','B','B','B'],['Y','Y','Y','Y'],[],[]],
         locks:   [{ tubeIndex: 5, unlockAt: 8 }] },
-      // 13 — same shape, much deeper lock (24 moves)
-      { capacities: [4,4,4,4,4,4], optimalMoves: 24,
-        initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','G'],['Y','R','G','B'],[],[]],
-        target:  [['R','R','R','R'],['G','G','G','G'],['B','B','B','B'],['Y','Y','Y','Y'],[],[]],
-        locks:   [{ tubeIndex: 5, unlockAt: 15 }] },
-      // 14 — joker mix with deep lock (26 moves)
+      // 15 MASTER: 4 colors, two deep staggered locks. Highest non-boss
+      // cognitive load — both content tubes are frozen well into the solve, so
+      // the whole opening must be planned around two moving deadlines (24 moves).
+      { capacities: [4,4,4,4,4], optimalMoves: 24,
+        initial: [['R','G','Y'],['B','R','G'],['Y','B'],['G','Y','R'],['B']],
+        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]],
+        locks:   [{ tubeIndex: 0, unlockAt: 6 }, { tubeIndex: 1, unlockAt: 9 }] },
+      // 16 — cross-mechanic in a back slot: joker mix + deep lock (26 moves)
       { capacities: [4,4,4,4,4], optimalMoves: 26,
         initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','J'],['J','G'],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],['J','J']],
         locks:   [{ tubeIndex: 4, unlockAt: 10 }] },
-      // 15 MONSTER FINAL — cross-mechanic: deep lock + a small (cap 2) buffer.
+      // 17 MONSTER FINAL — cross-mechanic: deep lock + a small (cap 2) buffer.
       // tube0 is frozen for 11 moves while the only roomy buffer is tube3; the
       // cap-2 tube4 cannot absorb a 3-stack, so the player must juggle staging
       // tightly. Same puzzle with a cap-4 buffer solves in 22 — the small tube
@@ -344,72 +377,99 @@ const WORLDS = [
     description: 'מבחנת שיפט הופכת כל כדור שנכנס לצבע הבא במחזור: R→G→B→Y→R. ג\'וקר נשאר ג\'וקר.',
     unlockStars: 56,
     // Each level may declare:
-    //   shifts: [tubeIndex, ...]
-    //     Listed tubes apply the cycle (R→G→B→Y→R) to balls entering them.
-    //     Joker is immune (stays J). Stored color in the tube is post-shift.
-    // All optimalMoves are BFS-verified.
+    //   shifts:     [tubeIndex, ...]  forward cycle  R→G→B→Y→R on entry
+    //   shiftsBack: [tubeIndex, ...]  reverse cycle  R→Y→B→G→R on entry
+    //     Joker is immune to both (stays J). Stored color is post-shift. A tube
+    //     is at most one of the two. Forward +1 and reverse −1 turn the world
+    //     into modular arithmetic: a target two steps away (an opposite color,
+    //     e.g. R→B) costs two passes EITHER way but through a DIFFERENT
+    //     intermediate (R→G→B vs R→Y→B), so the route you pick decides which
+    //     colour competes for the buffer. Re-entering one shift tube ("ping-
+    //     pong") is how a single ball climbs multiple steps.
+    // All optimalMoves are BFS-verified (node scripts/difficulty.js → ✓ match).
     levels: [
-      // 1: intro — 2 R's enter shift tube, become 2 G's
-      { capacities: [4,4,4], optimalMoves: 2,
-        initial: [['R','R'],[],[]],
-        target:  [[],[],['G','G']],
-        shifts:  [2] },
-      // 2: stack on pre-existing post-shift color
-      { capacities: [4,4,4], optimalMoves: 2,
-        initial: [['R','R'],[],['G']],
-        target:  [[],[],['G','G','G']],
-        shifts:  [2] },
-      // 3: 3 R's → 3 G's
+      // ---- First half: short, dense, one new idea each ------------------
+      // 1: forward shift +1 — three R's enter, become three G's
       { capacities: [4,4,4], optimalMoves: 3,
         initial: [['R','R','R'],[],[]],
         target:  [[],[],['G','G','G']],
         shifts:  [2] },
-      // 4: joker passes through unchanged (W3 wildcard rule extended)
+      // 2: joker is immune — it passes through the shift unchanged
       { capacities: [4,4,4], optimalMoves: 3,
         initial: [['R','J','R'],[],[]],
         target:  [[],[],['G','J','G']],
         shifts:  [2] },
-      // 5: chain — 2 shift tubes, R→G→B in sequence
-      { capacities: [4,4,4,4], optimalMoves: 3,
-        initial: [['R','R'],[],[],[]],
-        target:  [[],[],['G'],['B']],
-        shifts:  [2,3] },
-      // 6: distribute — 1 stays R, 1 becomes G, 1 becomes B (via 2 shifts)
+      // 3: two shift tubes chain — R becomes G in tube 2, then those G's must
+      //    ride on to become B in tube 3 (each destination adds one step)
       { capacities: [4,4,4,4], optimalMoves: 4,
-        initial: [['R','R','R'],[],[],[]],
-        target:  [[],['R'],['G'],['B']],
+        initial: [['G','G','R','R'],[],[],[]],
+        target:  [[],[],['G','G'],['B','B']],
         shifts:  [2,3] },
-      // 7: ping-pong via single shift — convert R to Y by re-entering 3 times
+      // 4: choose the route — shift some, keep some. Tube 1 is a plain buffer
+      //    (R stays R); tube 3 shifts (R→G). One source, two fates.
+      { capacities: [4,4,4,4], optimalMoves: 4,
+        initial: [['R','R','R','R'],[],[],[]],
+        target:  [[],['R','R'],[],['G','G']],
+        shifts:  [3] },
+      // 5: first ping-pong — R→B is two passes through ONE shift tube, so each
+      //    ball must leave to a buffer and re-enter. Two balls share the buffer.
       { capacities: [4,4,4], optimalMoves: 6,
-        initial: [['R'],[],[]],
-        target:  [[],['Y'],[]],
+        initial: [['R','R'],[],[]],
+        target:  [[],[],['B','B']],
         shifts:  [2] },
-      // 8: cross-mechanic — small (cap 2) shift tube
-      { capacities: [4,4,2,4,4], optimalMoves: 6,
-        initial: [['R','R','R'],[],[],[],[]],
-        target:  [[],[],[],['G','G'],['G']],
-        shifts:  [2] },
-      // 9 MASTER — 4 colors, 2 sources, 4 dedicated shift tubes
-      { capacities: [4,4,4,4,4,4], optimalMoves: 8,
-        initial: [['Y','B','G','R'],['B','Y','R','G'],[],[],[],[]],
-        target:  [[],[],['G','G'],['B','B'],['Y','Y'],['R','R']],
-        shifts:  [2,3,4,5] },
-      // 10 MASTER — joker sandwiched between R's, must become B's
-      { capacities: [4,4,4,4,4], optimalMoves: 9,
-        initial: [['R','J','R','J'],[],[],[],[]],
-        target:  [[],[],['B','J','B','J'],[],[]],
-        shifts:  [2] },
-      // 11 MASTER — two shift tubes, color budget forces re-conversion.
-      // Only 2 G + 2 B exist, but tube 2 needs B's (from G) and tube 3 needs
-      // Y's (from B) — so colors must be cycled THROUGH the shift tubes, not
-      // just sorted. The two shift tubes become a conversion pipeline.
-      { capacities: [4,4,4,4,4,4], optimalMoves: 13,
-        initial: [['R','G','B','Y'],['Y','B','G','R'],[],[],[],[]],
-        target:  [[],[],['B','B'],['Y','Y'],['R','R'],['G','G']],
-        shifts:  [2,3] },
-      // 12 MASTER FINAL — ping-pong endurance. Every ball must become B in
-      // one shift tube: R needs 2 passes (R→G→B), Y needs 3 (Y→R→G→B). The
-      // interleaved Y,R,Y,R source forces careful buffer ordering.
+      // ---- Midpoint + back half: routing + multi-pass, tight buffers -----
+      // 6 (midpoint): reverse shift arrives. Two R's take ONE reverse pass each
+      //    to Y (tube 1), while one R still needs two forward passes to B —
+      //    contrasting the two directions lifts the floor above L5.
+      { capacities: [4,4,4,4], optimalMoves: 7,
+        initial: [['R','R','R'],[],[],[]],
+        target:  [[],['Y','Y'],[],['B']],
+        shifts:     [3],
+        shiftsBack: [2] },
+      // 7: cross-mechanic — the forward shift tube (tube 2) holds only 2, with a
+      //    reverse tube beside it. Each R→B is two passes, but the cap-2 tube
+      //    can't stockpile its own output, so it must be drained between passes:
+      //    ping-pong meets a starved buffer, with a backward route also open.
+      { capacities: [4,4,2,4], optimalMoves: 8,
+        initial: [['R','R'],[],[],[]],
+        target:  [[],[],[],['B','B']],
+        shifts:     [2],
+        shiftsBack: [1] },
+      // 8: routing fork — three G's each climb two steps to Y, via forward
+      //    (G→B→Y, tube 2) or reverse (G→R→Y, tube 1). One plain buffer makes
+      //    the intermediates queue, so the cheaper route depends on what's parked.
+      { capacities: [4,4,4,4], optimalMoves: 9,
+        initial: [['G','G','G'],[],[],[]],
+        target:  [[],[],['Y','Y','Y'],[]],
+        shifts:     [2],
+        shiftsBack: [1] },
+      // 9: the same fork, scaled — four Y's must each become G (Y→R→G forward or
+      //    Y→B→G reverse). More balls share the one buffer, so the order of
+      //    conversions, not just the route, starts to matter.
+      { capacities: [4,4,4,4], optimalMoves: 12,
+        initial: [['Y','Y','Y','Y'],[],[],[]],
+        target:  [[],[],['G','G','G','G'],[]],
+        shifts:     [2],
+        shiftsBack: [1] },
+      // 10: four B's to R (B→Y→R forward or B→G→R reverse) on a wider but busier
+      //     bench — every parked colour is a fork in the route, exploding the
+      //     branching even though the climb is still two passes each.
+      { capacities: [4,4,4,4,4], optimalMoves: 12,
+        initial: [['B','B','B','B'],[],[],[],[]],
+        target:  [[],[],['R','R','R','R'],[],[]],
+        shifts:     [2],
+        shiftsBack: [1] },
+      // 11 MASTER — five R's to B, a full conversion pipeline. Forward and
+      //     reverse stay open, the buffers are scarce relative to the volume, and
+      //     finished B's compete with raw R's and half-cycled intermediates.
+      { capacities: [6,4,5,4], optimalMoves: 15,
+        initial: [['R','R','R','R','R'],[],[],[]],
+        target:  [[],[],['B','B','B','B','B'],[]],
+        shifts:     [2],
+        shiftsBack: [1] },
+      // 12 MASTER FINAL — ping-pong endurance. Every ball must become B in one
+      //    shift tube: R needs 2 passes (R→G→B), Y needs 3 (Y→R→G→B). The
+      //    interleaved Y,R,Y,R source forces careful buffer ordering.
       { capacities: [4,4,4,4,4], optimalMoves: 16,
         initial: [['Y','R','Y','R'],[],[],[],[]],
         target:  [[],[],['B','B','B','B'],[],[]],
@@ -510,56 +570,71 @@ const WORLDS = [
         initial: [['B'],['Y'],[]],
         target:  [[],[],['G']],
         blenders: [2] },
-      // 2: three greens, with ingredients interleaved across two stacks.
+      // 2: bridge — make two greens in two separate blenders.
+      //    A gentle step up from the single mix before the interleaved stacks.
+      { capacities: [4,4,4,4], optimalMoves: 4,
+        initial: [['B','B'],['Y','Y'],[],[]],
+        target:  [[],[],['G'],['G']],
+        blenders: [2,3] },
+      // 3: three greens, with ingredients interleaved across two stacks.
       { capacities: [4,4,4,4], optimalMoves: 9,
         initial: [['B','Y','B'],['Y','B','Y'],[],[]],
         target:  [[],[],[],['G','G','G']],
         blenders: [2] },
-      // 3: three products, and the B ingredients must be spent in the right order.
+      // 4: three products, and the B ingredients must be spent in the right order.
       { capacities: [4,4,4,4,4], optimalMoves: 8,
         initial: [['R','B','Y'],['B','Y'],['B'],[],[]],
         target:  [[],[],[],['G','G'],['P']],
         blenders: [2] },
-      // 4: first chain recipe, plus one green that must be preserved.
+      // 5: first chain recipe (black = green + red), plus a green to preserve.
       { capacities: [4,4,4,4,4], optimalMoves: 7,
         initial: [['B','Y','B'],['Y','R'],[],[],[]],
         target:  [[],[],[],['K'],['G']],
         blenders: [2] },
-      // 5: preserve one green, then make a second green as material for black.
-      { capacities: [4,4,4,4,4], optimalMoves: 9,
-        initial: [['B','Y','B'],['Y','R','B'],['R'],[],[]],
-        target:  [[],[],['K'],['G'],['P']],
+      // 6 (midpoint): one of each product (K, G, P) through a briefly-locked
+      //   lab. Exactly enough balls — a wrong blend strands an ingredient — so
+      //   the order must be partly staged before the lab opens. Step up from L5.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 12,
+        initial: [['B','R','Y'],['Y','R','B'],['B'],[],[],[]],
+        target:  [[],[],[],['K'],['G'],['P']],
+        blenders: [3],
+        locks: [{ tubeIndex: 3, unlockAt: 3 }] },
+      // 7: a greens-only breather with a different shape — the tight (cap-2)
+      //   blender, where four greens must exit cleanly into two stacks.
+      { capacities: [4,4,2,4,4,4], optimalMoves: 12,
+        initial: [['B','Y','B','Y'],['Y','B','Y','B'],[],[],[],[]],
+        target:  [[],[],[],['G','G'],['G','G'],[]],
         blenders: [2] },
-      // 6: small blender — capacity is tight, and three products must exit cleanly.
-      { capacities: [4,4,2,4,4], optimalMoves: 9,
-        initial: [['B','Y','B'],['Y','B','Y'],[],[],[]],
-        target:  [[],[],[],['G','G'],['G']],
-        blenders: [2] },
-      // 7: products must be routed into color-locked destinations.
-      { capacities: [4,4,4,4,4,4], optimalMoves: 8,
-        initial: [['R','B','Y'],['B','Y'],['B'],[],[],[]],
-        target:  [[],[],[],['G'],['P'],['G']],
-        blenders: [2],
-        tubeColors: [null, null, null, 'G', 'P', 'G'] },
-      // 8: delayed lab access. Prepare the order while the blender is closed.
-      { capacities: [4,4,4,4,4], optimalMoves: 12,
-        initial: [['B','Y','B'],['Y','R','B'],['R'],[],[]],
-        target:  [[],[],['K'],['G'],['P']],
-        blenders: [2],
-        locks: [{ tubeIndex: 2, unlockAt: 4 }] },
-      // 9 MASTER: one lab tube, four products, and a chain product.
-      { capacities: [4,4,4,4,4,4], optimalMoves: 13,
+      // 8: the chain finale begins — black + two greens + purple, fed by one
+      //   delayed lab. Ingredients are exact, so every green built for the black
+      //   must come from scratch and no ball can be wasted.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 16,
         initial: [['B','Y','B','R'],['Y','B','R'],['B','Y'],[],[],[]],
         target:  [[],[],[],['K'],['G','G'],['P']],
-        blenders: [3] },
-      // 10 MASTER FINAL: color-locked outputs and a locked shared lab force
-      // staging. Two K targets require two separate green intermediates before
-      // the remaining ingredients can become G and P.
-      { capacities: [4,4,4,4,4,4], optimalMoves: 19,
+        blenders: [3],
+        locks: [{ tubeIndex: 3, unlockAt: 4 }] },
+      // 9: two blacks now — each needs its own green intermediate, deep-chained
+      //   through the single late-opening lab. Exactly enough of every colour.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 18,
         initial: [['B','Y','R','B'],['Y','R','B'],['R','Y','B'],[],[],[]],
         target:  [[],[],[],['K','K'],['G'],['P']],
         blenders: [3],
-        locks: [{ tubeIndex: 3, unlockAt: 5 }],
+        locks: [{ tubeIndex: 3, unlockAt: 4 }] },
+      // 10 MASTER: the full order — two blacks, two greens and a purple — staged
+      //   against a delayed lab with the source tubes packed solid.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 21,
+        initial: [['B','Y','R','B'],['Y','R','B','Y'],['R','Y','B','B'],[],[],[]],
+        target:  [[],[],[],['K','K'],['G','G'],['P']],
+        blenders: [3],
+        locks: [{ tubeIndex: 3, unlockAt: 4 }] },
+      // 11 MASTER FINAL: the same full order, but the ingredients are buried
+      //   deeper, the lab opens even later, and the purple destination is
+      //   colour-locked — every black is a from-scratch chain with no slack.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 23,
+        initial: [['B','R','Y','B'],['R','Y','B','Y'],['Y','R','B','B'],[],[],[]],
+        target:  [[],[],[],['K','K'],['G','G'],['P']],
+        blenders: [3],
+        locks: [{ tubeIndex: 3, unlockAt: 6 }],
         tubeColors: [null, null, null, null, null, 'P'] }
     ]
   }

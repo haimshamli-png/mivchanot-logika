@@ -12,7 +12,8 @@ const state = {
   target: [],
   locks: [],                  // [{ tubeIndex, unlockAt }] — derived block state
   tubeColors: [],             // per-tube color tag (null = agnostic, 'R'/'G'/'B'/'Y' = color-locked)
-  shifts: [],                 // tube indices that transform incoming balls (W6)
+  shifts: [],                 // tube indices that shift incoming balls forward R→G→B→Y→R (W6)
+  shiftsBack: [],             // tube indices that shift incoming balls backward R→Y→B→G→R (W6)
   mixers: [],                 // tube indices that mix mismatched colors into a joker (W7)
   blenders: [],               // tube indices that combine recipe colors into a new color (W8)
   selectedTubeIndex: null,
@@ -142,12 +143,15 @@ function blendedBall(topBall, incomingBall) {
   return api.mixPair(topBall, incomingBall);
 }
 
-// Shift cycle (W6): R→G→B→Y→R. Joker is immune.
+// Shift cycle (W6): forward R→G→B→Y→R, reverse R→Y→B→G→R. Joker is immune to
+// both. A tube is at most one of forward/reverse.
 const SHIFT_CYCLE = { R: 'G', G: 'B', B: 'Y', Y: 'R' };
+const SHIFT_CYCLE_BACK = { R: 'Y', Y: 'B', B: 'G', G: 'R' };
 function shiftedBall(ball, tubeIndex) {
-  if (!state.shifts.includes(tubeIndex)) return ball;
   if (ball === 'J') return ball;
-  return SHIFT_CYCLE[ball] || ball;
+  if (state.shifts.includes(tubeIndex)) return SHIFT_CYCLE[ball] || ball;
+  if (state.shiftsBack.includes(tubeIndex)) return SHIFT_CYCLE_BACK[ball] || ball;
+  return ball;
 }
 
 const el = {
@@ -386,6 +390,9 @@ function getRuleSummary() {
   if (state.shifts.length > 0) {
     parts.push('שיפט משנה כדור נכנס לצבע הבא במחזור.');
   }
+  if (state.shiftsBack.length > 0) {
+    parts.push('שיפט הפוך משנה כדור נכנס לצבע הקודם במחזור.');
+  }
   if (state.mixers.length > 0) {
     parts.push('מערבל הופך שני צבעים שונים לג׳וקר אחד.');
   }
@@ -477,6 +484,7 @@ function loadLevelData(level) {
     ? [...level.tubeColors]
     : level.capacities.map(() => null);
   state.shifts = level.shifts ? [...level.shifts] : [];
+  state.shiftsBack = level.shiftsBack ? [...level.shiftsBack] : [];
   state.mixers = level.mixers ? [...level.mixers] : [];
   state.blenders = level.blenders ? [...level.blenders] : [];
   state.selectedTubeIndex = null;
@@ -784,6 +792,8 @@ function renderTube(tube, index, isTarget, capacity) {
   if (color) tubeEl.classList.add(`color-${color}`);
   const isShift = state.shifts.includes(index);
   if (isShift) tubeEl.classList.add('shift');
+  const isShiftBack = state.shiftsBack.includes(index);
+  if (isShiftBack) tubeEl.classList.add('shift-back');
   const isMixer = state.mixers.includes(index);
   if (isMixer) tubeEl.classList.add('mixer');
   const isBlender = state.blenders.includes(index);
@@ -805,7 +815,14 @@ function renderTube(tube, index, isTarget, capacity) {
       const badge = document.createElement('div');
       badge.className = 'shift-badge';
       badge.textContent = '🔄';
-      badge.title = 'שיפט צבע';
+      badge.title = 'שיפט צבע קדימה';
+      badgeStrip.appendChild(badge);
+    }
+    if (isShiftBack) {
+      const badge = document.createElement('div');
+      badge.className = 'shift-badge shift-back-badge';
+      badge.textContent = '🔃';
+      badge.title = 'שיפט צבע אחורה';
       badgeStrip.appendChild(badge);
     }
     if (isMixer) {

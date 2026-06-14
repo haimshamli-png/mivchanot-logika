@@ -72,13 +72,20 @@ function nextStates(level, tubes, moves) {
 }
 
 function shortest(level) {
-  const seen = new Set([key(level.initial)]);
+  // Lock status is time-dependent, so the same tube configuration at a
+  // different moveCount is a DIFFERENT state. Key on (tubes, clampedMoves),
+  // clamping moveCount to the last unlock (beyond it locks never change).
+  // Without this, solutions that spend a move to advance the lock counter are
+  // wrongly pruned and a solvable locked level can look unsolvable.
+  const maxUnlock = (level.locks || []).reduce((m, L) => Math.max(m, L.unlockAt), 0);
+  const stateKey = (tubes, moves) => key(tubes) + '|' + Math.min(moves, maxUnlock);
+  const seen = new Set([stateKey(level.initial, 0)]);
   const queue = [{ tubes: cloneTubes(level.initial), moves: 0 }];
   for (let i = 0; i < queue.length; i++) {
     const current = queue[i];
     if (isWin(current.tubes, level.target)) return current.moves;
     for (const next of nextStates(level, current.tubes, current.moves)) {
-      const k = key(next);
+      const k = stateKey(next, current.moves + 1);
       if (seen.has(k)) continue;
       seen.add(k);
       queue.push({ tubes: next, moves: current.moves + 1 });

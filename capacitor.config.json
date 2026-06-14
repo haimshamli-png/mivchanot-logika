@@ -1,0 +1,12 @@
+{
+  "appId": "com.haimshamli.logicubes",
+  "appName": "מבחנות הלוגיקה",
+  "webDir": "www",
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DARK",
+      "hidden": false
+    }
+  }
+}

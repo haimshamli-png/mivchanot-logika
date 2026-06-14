@@ -3,3 +3,4 @@
 deploy/
 *.log
 node_modules/
+www/
