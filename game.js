@@ -16,14 +16,20 @@ const state = {
   shiftsBack: [],             // tube indices that shift incoming balls backward R→Y→B→G→R (W6)
   mixers: [],                 // tube indices that mix mismatched colors into a joker (W7)
   blenders: [],               // tube indices that combine recipe colors into a new color (W8)
+  valves: [],                 // [{ tubeIndex, mode: 'in'|'out'|'flip', starts?: 'in'|'out' }]
+  valveStates: {},            // mutable state only for flip valves
+  portals: [],                // [{ pair: [entryA, entryB] }] — entering either tube exits the other
   selectedTubeIndex: null,
   moveCount: 0,
   moveHistory: [],
+  undoCount: 0,
+  violationCount: 0,
   lastViolation: null,        // rule key of the most recent illegal-move feedback (for toast escalation)
   taTimeLeft: 0,
   taTimerId: null,
   taSolved: 0,
-  taLevelQueue: []
+  taLevelQueue: [],
+  dailyChallenge: null
 };
 
 /* =====================================================================
@@ -41,7 +47,10 @@ const VIOLATION_COPY = {
   stack:    { short: '❌ לא תואם',
               full: () => 'אפשר להניח כדור רק על אותו צבע, על ג\'וקר, או במבחנה ריקה.' },
   blend:    { short: '⚗️ אין מתכון',
-              full: () => 'במבחנת ערבוב צריך זוג צבעים שיוצר צבע חדש לפי המתכונים.' }
+              full: () => 'במבחנת ערבוב צריך זוג צבעים שיוצר צבע חדש לפי המתכונים.' },
+  valveSource: { short: '↓ כניסה בלבד', full: () => 'השסתום הזה מקבל כדורים בלבד. אי אפשר לשפוך ממנו.' },
+  valveDest:   { short: '↑ יציאה בלבד', full: () => 'השסתום הזה משחרר כדורים בלבד. אי אפשר לשפוך אליו.' },
+  portalBack:  { short: '🌀 חוזר לכאן', full: () => 'כניסה לפורטל הזה מחזירה את הכדור למבחנה שממנה יצא, לכן אין תנועה.' }
 };
 const COLOR_NAME = { R: 'אדום', G: 'ירוק', B: 'כחול', Y: 'צהוב', P: 'סגול', K: 'שחור' };
 
@@ -49,6 +58,7 @@ const COLOR_NAME = { R: 'אדום', G: 'ירוק', B: 'כחול', Y: 'צהוב',
 // play tubes — not pinned to the offending tube. `tubeIndex` is kept in the
 // signature (call sites still pass it) but no longer used for placement.
 function showViolation(tubeIndex, rule, ctx) {
+  state.violationCount++;
   const repeat = state.lastViolation === rule;
   state.lastViolation = rule;
   const copy = VIOLATION_COPY[rule];
@@ -94,11 +104,11 @@ function dismissViolationToast() {
 
 /* =====================================================================
    WORLD VISIBILITY
-   Some early-prototype worlds were retired but kept in levels.js so old
-   progress entries in localStorage stay loadable. They just don't appear
-   in any UI and don't count toward star totals.
+   Some worlds are retired from the main route but kept in levels.js so old
+   progress entries stay loadable and their mechanics can be reused as side
+   content. They don't appear in UI and don't count toward star totals.
    ===================================================================== */
-const HIDDEN_WORLD_IDS = [2, 5, 7];
+const HIDDEN_WORLD_IDS = [2, 5, 7, 9];
 function isWorldVisible(world) {
   return !HIDDEN_WORLD_IDS.includes(world.id);
 }
@@ -154,6 +164,10 @@ function shiftedBall(ball, tubeIndex) {
   return ball;
 }
 
+function getPortalApi() {
+  return window.PORTALS || (typeof PORTALS !== 'undefined' ? PORTALS : null);
+}
+
 const el = {
   screenSelect: document.getElementById('screen-select'),
   screenGame: document.getElementById('screen-game'),
@@ -164,6 +178,8 @@ const el = {
   resetProgressBtn: document.getElementById('reset-progress-btn'),
   timeAttackBtn: document.getElementById('time-attack-btn'),
   taBest: document.getElementById('ta-best'),
+  dailyBtn: document.getElementById('daily-btn'),
+  dailySub: document.getElementById('daily-sub'),
 
   soloHeader: document.getElementById('solo-header'),
   backBtn: document.getElementById('back-btn'),
@@ -193,6 +209,7 @@ const el = {
   winOptimal: document.getElementById('win-optimal'),
   winStars: document.getElementById('win-stars'),
   winStarHint: document.getElementById('win-star-hint'),
+  winContracts: document.getElementById('win-contracts'),
   nextBtn: document.getElementById('next-btn'),
   backToSelectBtn: document.getElementById('back-to-select-btn'),
   completeOverlay: document.getElementById('game-complete-overlay'),
@@ -223,6 +240,7 @@ const el = {
 const THEME_KEY = 'tubes-theme';
 const PROGRESS_KEY = 'tubes-progress';
 const TA_BEST_KEY = 'tubes-ta-best';
+const DAILY_RESULTS_KEY = 'tubes-daily-results';
 const REDUCE_ANIM_KEY = 'tubes-reduce-anim';
 const VALID_THEMES = ['nostalgic', 'modern'];
 
@@ -252,13 +270,34 @@ function getLevelRecord(worldId, levelIndex) {
   return w[String(levelIndex)];
 }
 
-function recordResult(worldId, levelIndex, moves, stars) {
+function getContractApi() {
+  return window.CONTRACTS || (typeof CONTRACTS !== 'undefined' ? CONTRACTS : null);
+}
+
+function getDailyApi() {
+  return window.DAILY_CHALLENGE || (typeof DAILY_CHALLENGE !== 'undefined' ? DAILY_CHALLENGE : null);
+}
+
+function getValveApi() {
+  return window.VALVES || (typeof VALVES !== 'undefined' ? VALVES : null);
+}
+
+function recordResult(worldId, levelIndex, moves, stars, earnedContracts = {}) {
   const wid = String(worldId);
   const lid = String(levelIndex);
   if (!progress[wid]) progress[wid] = {};
   const existing = progress[wid][lid];
+  const contractApi = getContractApi();
+  const contracts = contractApi
+    ? contractApi.mergeContracts(existing && existing.contracts, earnedContracts)
+    : (existing && existing.contracts) || earnedContracts;
+  const contractCount = contractApi ? contractApi.countContracts(contracts) : 0;
+  const existingContractCount = contractApi ? contractApi.countContracts(existing && existing.contracts) : 0;
   if (!existing || stars > existing.stars || (stars === existing.stars && moves < existing.bestMoves)) {
-    progress[wid][lid] = { stars, bestMoves: moves };
+    progress[wid][lid] = { stars, bestMoves: moves, contracts };
+    saveProgress();
+  } else if (contractCount > existingContractCount) {
+    progress[wid][lid] = { ...existing, contracts };
     saveProgress();
   }
 }
@@ -294,6 +333,34 @@ function getTABest() {
 }
 function setTABest(n) {
   try { localStorage.setItem(TA_BEST_KEY, String(n)); } catch (e) {}
+}
+
+function getDailyResults() {
+  try { return JSON.parse(localStorage.getItem(DAILY_RESULTS_KEY) || '{}'); }
+  catch (e) { return {}; }
+}
+
+function saveDailyResults(results) {
+  try { localStorage.setItem(DAILY_RESULTS_KEY, JSON.stringify(results)); } catch (e) {}
+}
+
+function recordDailyResult(challenge, moves, stars, modifierPassed) {
+  if (!challenge) return;
+  const results = getDailyResults();
+  const existing = results[challenge.key];
+  if (!existing || stars > existing.stars || (stars === existing.stars && moves < existing.bestMoves)) {
+    results[challenge.key] = {
+      worldId: challenge.worldId,
+      levelIndex: challenge.levelIndex,
+      modifierId: challenge.modifier.id,
+      stars,
+      bestMoves: moves,
+      modifierPassed: !!modifierPassed
+    };
+  } else if (modifierPassed && !existing.modifierPassed) {
+    results[challenge.key] = { ...existing, modifierPassed: true };
+  }
+  saveDailyResults(results);
 }
 
 /* =====================================================================
@@ -399,11 +466,49 @@ function getRuleSummary() {
   if (state.blenders.length > 0) {
     parts.push('מבחנת ערבוב משלבת זוג צבעים לפי מתכון ויוצרת כדור חדש.');
   }
+  if (state.valves.length > 0) {
+    parts.push('שסתום כניסה מקבל בלבד, שסתום יציאה משחרר בלבד, ושסתום מתהפך מחליף כיוון אחרי שימוש.');
+  }
+  if (state.portals.length > 0) {
+    parts.push('פורטל מעביר כדור שנכנס אליו אל הפורטל התאום שלו.');
+  }
   const hasJoker = state.tubes.concat(state.target).some(t => t.includes('J'));
   if (hasJoker) {
     parts.push('ג׳וקר מתאים לכל צבע וכל צבע מתאים עליו.');
   }
+  if (state.mode === 'daily' && state.dailyChallenge) {
+    const api = getDailyApi();
+    const modifier = state.dailyChallenge.modifier;
+    const detail = modifier.id === 'tight' && api
+      ? `${modifier.description} יעד יומי: עד ${api.getTightMoveLimit(state.dailyChallenge.level)} מהלכים.`
+      : modifier.description;
+    parts.unshift(`ניסוי יומי: ${modifier.icon} ${modifier.label}. ${detail}`);
+  }
   return parts;
+}
+
+function getTodaysDailyChallenge() {
+  const api = getDailyApi();
+  if (!api) return null;
+  return api.pickDailyChallenge(WORLDS, new Date(), { hiddenWorldIds: HIDDEN_WORLD_IDS });
+}
+
+function renderDailyCard() {
+  if (!el.dailyBtn || !el.dailySub) return;
+  const challenge = getTodaysDailyChallenge();
+  if (!challenge) {
+    el.dailyBtn.disabled = true;
+    el.dailySub.textContent = 'אין היום ניסוי זמין';
+    return;
+  }
+  const world = WORLDS.find(w => w.id === challenge.worldId);
+  const result = getDailyResults()[challenge.key];
+  const status = result
+    ? ` · שיא: ${result.bestMoves} מהלכים${result.modifierPassed ? ' · כלל הושלם' : ''}`
+    : '';
+  el.dailyBtn.disabled = false;
+  el.dailySub.textContent =
+    `${challenge.modifier.icon} ${challenge.modifier.label} · ${world.icon} ${world.name}, שלב ${challenge.levelIndex + 1}${status}`;
 }
 
 function renderLevelSelect() {
@@ -441,11 +546,18 @@ function renderLevelSelect() {
         const lvlUnlocked = isLevelUnlocked(world.id, i);
         const rec = getLevelRecord(world.id, i);
         const stars = rec ? rec.stars : 0;
+        const contractApi = getContractApi();
+        const contractCount = contractApi ? contractApi.countContracts(rec && rec.contracts) : 0;
         const card = document.createElement('button');
         card.className = 'level-card' + (lvlUnlocked ? '' : ' locked');
         card.disabled = !lvlUnlocked;
+        card.setAttribute(
+          'aria-label',
+          rec ? `שלב ${i + 1}, ${contractCount} מתוך 3 חותמות אתגר` : `שלב ${i + 1}`
+        );
         card.innerHTML = `<span class="num">${i + 1}</span>` +
-                        (lvlUnlocked ? renderStarsRow(stars) : '');
+                        (lvlUnlocked ? renderStarsRow(stars) : '') +
+                        (rec ? `<span class="level-contracts" title="חותמות אתגר">${contractCount}/3</span>` : '');
         if (lvlUnlocked) card.addEventListener('click', () => startSoloLevel(world.id, i));
         grid.appendChild(card);
       });
@@ -458,6 +570,7 @@ function renderLevelSelect() {
   el.totalStars.textContent = formatStars(getTotalStars());
   el.maxStars.textContent = getMaxStars();
   el.taBest.textContent = getTABest() || '—';
+  renderDailyCard();
 }
 
 /* =====================================================================
@@ -466,10 +579,24 @@ function renderLevelSelect() {
 
 function startSoloLevel(worldId, levelIndex) {
   state.mode = 'solo';
+  state.dailyChallenge = null;
   state.currentWorld = worldId;
   state.currentLevel = levelIndex;
   const world = WORLDS.find(w => w.id === worldId);
   loadLevelData(world.levels[levelIndex]);
+  showScreen('game');
+  showModeUI();
+  renderGame();
+}
+
+function startDailyChallenge() {
+  const challenge = getTodaysDailyChallenge();
+  if (!challenge) return;
+  state.mode = 'daily';
+  state.dailyChallenge = challenge;
+  state.currentWorld = challenge.worldId;
+  state.currentLevel = challenge.levelIndex;
+  loadLevelData(challenge.level);
   showScreen('game');
   showModeUI();
   renderGame();
@@ -487,9 +614,15 @@ function loadLevelData(level) {
   state.shiftsBack = level.shiftsBack ? [...level.shiftsBack] : [];
   state.mixers = level.mixers ? [...level.mixers] : [];
   state.blenders = level.blenders ? [...level.blenders] : [];
+  state.valves = (level.valves || []).map(valve => ({ ...valve }));
+  const valveApi = getValveApi();
+  state.valveStates = valveApi ? valveApi.initialValveStates(level) : {};
+  state.portals = (level.portals || []).map(portal => ({ ...portal, pair: [...portal.pair] }));
   state.selectedTubeIndex = null;
   state.moveCount = 0;
   state.moveHistory = [];
+  state.undoCount = 0;
+  state.violationCount = 0;
 }
 
 function onTubeTap(index) {
@@ -508,19 +641,62 @@ function onTubeTap(index) {
       showViolation(index, 'lock', { remaining: lock.remaining });
       return;
     }
+    const valveApi = getValveApi();
+    if (valveApi && !valveApi.canUseValveAsSource({ valves: state.valves }, state.valveStates, index)) {
+      showViolation(index, 'valveSource');
+      return;
+    }
     state.selectedTubeIndex = index;
     renderGame(true);
     return;
   }
   const from = state.selectedTubeIndex;
-  const to = index;
-  const destLock = tubeLockInfo(to);
-  if (destLock.locked) {
+  const requestedTo = index;
+  const requestedLock = tubeLockInfo(requestedTo);
+  if (requestedLock.locked) {
     // renderGame rebuilds #game-tubes, so the toast must be attached AFTER it
     // or it gets wiped along with the old tube element.
     state.selectedTubeIndex = null;
     renderGame(true);
-    showViolation(to, 'lock', { remaining: destLock.remaining });
+    showViolation(requestedTo, 'lock', { remaining: requestedLock.remaining });
+    return;
+  }
+  const valveApi = getValveApi();
+  if (valveApi && !valveApi.canUseValveAsDestination({ valves: state.valves }, state.valveStates, requestedTo)) {
+    state.selectedTubeIndex = null;
+    renderGame(true);
+    showViolation(requestedTo, 'valveDest');
+    return;
+  }
+  const portalApi = getPortalApi();
+  const to = portalApi
+    ? portalApi.resolvePortalDestination({ portals: state.portals }, requestedTo)
+    : requestedTo;
+  if (to === from) {
+    state.selectedTubeIndex = null;
+    renderGame(true);
+    showViolation(requestedTo, 'portalBack');
+    return;
+  }
+  if (to !== requestedTo) {
+    const exitLock = tubeLockInfo(to);
+    if (exitLock.locked) {
+      state.selectedTubeIndex = null;
+      renderGame(true);
+      showViolation(to, 'lock', { remaining: exitLock.remaining });
+      return;
+    }
+    if (valveApi && !valveApi.canUseValveAsDestination({ valves: state.valves }, state.valveStates, to)) {
+      state.selectedTubeIndex = null;
+      renderGame(true);
+      showViolation(to, 'valveDest');
+      return;
+    }
+  }
+  if (to !== requestedTo && state.tubes[to].length >= state.capacities[to]) {
+    state.selectedTubeIndex = null;
+    renderGame(true);
+    showViolation(to, 'capacity');
     return;
   }
   const movingBall = state.tubes[from][state.tubes[from].length - 1];
@@ -551,10 +727,14 @@ function onTubeTap(index) {
   // ball and the current top, replacing them with the recipe result.
   if (blendResult) {
     clearViolation();
+    const valveStatesBefore = { ...state.valveStates };
     state.tubes[from].pop();
     const consumedTop = state.tubes[to].pop();
     state.tubes[to].push(blendResult);
-    state.moveHistory.push({ from, to, original: movingBall, mixed: true, consumedTop });
+    state.valveStates = valveApi
+      ? valveApi.toggleValvesAfterMove({ valves: state.valves }, state.valveStates, from, requestedTo)
+      : state.valveStates;
+    state.moveHistory.push({ from, to, original: movingBall, mixed: true, consumedTop, valveStatesBefore });
     state.moveCount++;
     state.selectedTubeIndex = null;
     renderGame(true);
@@ -568,10 +748,14 @@ function onTubeTap(index) {
   // count -1; tube length unchanged so capacity isn't a barrier here.
   if (isMixer && !wouldStack) {
     clearViolation();
+    const valveStatesBefore = { ...state.valveStates };
     state.tubes[from].pop();
     const consumedTop = state.tubes[to].pop();
     state.tubes[to].push('J');
-    state.moveHistory.push({ from, to, original: movingBall, mixed: true, consumedTop });
+    state.valveStates = valveApi
+      ? valveApi.toggleValvesAfterMove({ valves: state.valves }, state.valveStates, from, requestedTo)
+      : state.valveStates;
+    state.moveHistory.push({ from, to, original: movingBall, mixed: true, consumedTop, valveStatesBefore });
     state.moveCount++;
     state.selectedTubeIndex = null;
     renderGame(true);
@@ -596,9 +780,13 @@ function onTubeTap(index) {
     return;
   }
   clearViolation();
+  const valveStatesBefore = { ...state.valveStates };
   state.tubes[from].pop();
   state.tubes[to].push(effective);
-  state.moveHistory.push({ from, to, original: movingBall });
+  state.valveStates = valveApi
+    ? valveApi.toggleValvesAfterMove({ valves: state.valves }, state.valveStates, from, requestedTo)
+    : state.valveStates;
+  state.moveHistory.push({ from, to, original: movingBall, valveStatesBefore });
   state.moveCount++;
   state.selectedTubeIndex = null;
   renderGame(true);
@@ -616,6 +804,8 @@ function checkWin() {
 
 function undo() {
   if (state.moveHistory.length === 0) return;
+  if (isDailyNoUndo()) return;
+  state.undoCount++;
   const m = state.moveHistory.pop();
   if (m.mixed) {
     // Undo a mix: remove the J, restore the consumed top to the dest,
@@ -630,6 +820,7 @@ function undo() {
     const popped = state.tubes[m.to].pop();
     state.tubes[m.from].push(m.original !== undefined ? m.original : popped);
   }
+  if (m.valveStatesBefore) state.valveStates = { ...m.valveStatesBefore };
   state.moveCount = Math.max(0, state.moveCount - 1);
   state.selectedTubeIndex = null;
   renderGame(true);
@@ -637,10 +828,11 @@ function undo() {
 
 function resetLevel() {
   if (state.mode === 'solo') startSoloLevel(state.currentWorld, state.currentLevel);
+  if (state.mode === 'daily') startDailyChallenge();
 }
 
 function handleWin() {
-  if (state.mode === 'solo') setTimeout(showSoloWin, 350);
+  if (state.mode === 'solo' || state.mode === 'daily') setTimeout(showSoloWin, 350);
   else handleTASolve();
 }
 
@@ -648,14 +840,42 @@ function showSoloWin() {
   const world = getCurrentWorld();
   const level = world.levels[state.currentLevel];
   const stars = computeStars(state.moveCount, level.optimalMoves);
-  recordResult(state.currentWorld, state.currentLevel, state.moveCount, stars);
+  const contractApi = getContractApi();
+  const dailyApi = getDailyApi();
+  const isDaily = state.mode === 'daily';
+  const previous = isDaily ? null : getLevelRecord(state.currentWorld, state.currentLevel);
+  const earnedContracts = contractApi
+    ? contractApi.evaluateContracts({
+      moves: state.moveCount,
+      undoCount: state.undoCount,
+      violationCount: state.violationCount
+    }, level)
+    : {};
+  const allContracts = contractApi
+    ? contractApi.mergeContracts(previous && previous.contracts, earnedContracts)
+    : earnedContracts;
+  const modifierPassed = isDaily && dailyApi
+    ? dailyApi.evaluateDailyModifier(state.dailyChallenge, {
+      moves: state.moveCount,
+      undoCount: state.undoCount,
+      violationCount: state.violationCount
+    })
+    : false;
+  if (isDaily) recordDailyResult(state.dailyChallenge, state.moveCount, stars, modifierPassed);
+  else recordResult(state.currentWorld, state.currentLevel, state.moveCount, stars, earnedContracts);
   el.winMoves.textContent = state.moveCount;
   el.winOptimal.textContent = level.optimalMoves;
   el.winStars.innerHTML = renderStarsRow(stars, 3, false);
+  renderWinContracts(earnedContracts, allContracts);
   const extra = Math.max(0, state.moveCount - level.optimalMoves);
   const step = Math.max(1, Math.ceil(level.optimalMoves / 6));
   const grace = Math.ceil(step / 2);
-  if (stars === 3) {
+  if (isDaily) {
+    const modifier = state.dailyChallenge.modifier;
+    el.winStarHint.textContent = modifierPassed
+      ? `הניסוי היומי הושלם: ${modifier.icon} ${modifier.label}.`
+      : `פתרת את החידה. כלל הניסוי "${modifier.label}" עוד מחכה לריצה נקייה יותר.`;
+  } else if (stars === 3) {
     el.winStarHint.textContent = '3 כוכבים: נכנסת לטווח האופטימלי.';
   } else {
     el.winStarHint.textContent =
@@ -663,9 +883,9 @@ function showSoloWin() {
   }
   triggerCelebration();
   const isLastInWorld = state.currentLevel >= world.levels.length - 1;
-  el.nextBtn.classList.toggle('hidden', isLastInWorld);
+  el.nextBtn.classList.toggle('hidden', isDaily || isLastInWorld);
   el.winOverlay.classList.remove('hidden');
-  if (isLastInWorld) {
+  if (!isDaily && isLastInWorld) {
     const visible = visibleWorlds();
     const isLastWorld = world.id === visible[visible.length - 1].id;
     const totalLevels = visible.reduce((sum, w) => sum + w.levels.length, 0);
@@ -680,6 +900,26 @@ function showSoloWin() {
       el.completeOverlay.classList.remove('hidden');
     }, 2200);
   }
+}
+
+function renderWinContracts(earnedContracts, allContracts) {
+  const contractApi = getContractApi();
+  if (!contractApi || !el.winContracts) {
+    if (el.winContracts) el.winContracts.innerHTML = '';
+    return;
+  }
+  el.winContracts.innerHTML = contractApi.CONTRACT_DEFS.map((contract) => {
+    const earnedNow = !!earnedContracts[contract.id];
+    const alreadyBanked = !earnedNow && !!allContracts[contract.id];
+    const cls = earnedNow ? 'earned' : alreadyBanked ? 'banked' : 'missed';
+    const title = alreadyBanked ? `${contract.description} כבר הושלם בעבר.` : contract.description;
+    return `
+      <span class="contract-stamp ${cls}" title="${title}">
+        <span class="contract-icon">${contract.icon}</span>
+        <span>${contract.label}</span>
+      </span>
+    `;
+  }).join('');
 }
 
 function nextLevel() {
@@ -798,6 +1038,12 @@ function renderTube(tube, index, isTarget, capacity) {
   if (isMixer) tubeEl.classList.add('mixer');
   const isBlender = state.blenders.includes(index);
   if (isBlender) tubeEl.classList.add('blender');
+  const valveApi = getValveApi();
+  const valveMode = valveApi ? valveApi.valveModeForTube({ valves: state.valves }, state.valveStates, index) : null;
+  if (valveMode) tubeEl.classList.add(`valve-${valveMode}`);
+  const portalApi = getPortalApi();
+  const isPortal = portalApi ? portalApi.isPortalTube({ portals: state.portals }, index) : false;
+  if (isPortal) tubeEl.classList.add('portal');
   if (!isTarget) {
     if (state.selectedTubeIndex === index) tubeEl.classList.add('selected');
     const badgeStrip = document.createElement('div');
@@ -839,6 +1085,20 @@ function renderTube(tube, index, isTarget, capacity) {
       badge.title = 'מבחנת ערבוב';
       badgeStrip.appendChild(badge);
     }
+    if (valveMode) {
+      const badge = document.createElement('div');
+      badge.className = `valve-badge valve-badge-${valveMode}`;
+      badge.textContent = valveMode === 'in' ? '↓' : '↑';
+      badge.title = valveMode === 'in' ? 'שסתום כניסה' : 'שסתום יציאה';
+      badgeStrip.appendChild(badge);
+    }
+    if (isPortal) {
+      const badge = document.createElement('div');
+      badge.className = 'portal-badge';
+      badge.textContent = '↔';
+      badge.title = `פורטל ${portalApi.portalLabel({ portals: state.portals }, index)}`;
+      badgeStrip.appendChild(badge);
+    }
     if (badgeStrip.children.length > 0) tubeEl.appendChild(badgeStrip);
     tubeEl.addEventListener('click', () => onTubeTap(index));
   }
@@ -855,7 +1115,7 @@ function renderTube(tube, index, isTarget, capacity) {
 
 function renderRuleCard() {
   const rules = getRuleSummary();
-  if (rules.length === 0 || state.mode !== 'solo') {
+  if (rules.length === 0 || (state.mode !== 'solo' && state.mode !== 'daily')) {
     el.ruleCard.classList.add('hidden');
     el.ruleCard.textContent = '';
     return;
@@ -865,10 +1125,12 @@ function renderRuleCard() {
 }
 
 function renderGame(suppressOpenAnim = false) {
-  if (state.mode === 'solo') {
+  if (state.mode === 'solo' || state.mode === 'daily') {
     const world = getCurrentWorld();
-    el.worldName.textContent = world ? `${world.icon} ${world.name}` : '—';
-    el.levelNumber.textContent = state.currentLevel + 1;
+    el.worldName.textContent = state.mode === 'daily'
+      ? '🗓 ניסוי יומי'
+      : world ? `${world.icon} ${world.name}` : '—';
+    el.levelNumber.textContent = state.mode === 'daily' ? 'יומי' : state.currentLevel + 1;
     el.moves.textContent = state.moveCount;
   }
   document.body.classList.toggle('no-open-anim', suppressOpenAnim);
@@ -880,7 +1142,13 @@ function renderGame(suppressOpenAnim = false) {
   el.gameTubes.innerHTML = '';
   state.tubes.forEach((tube, i) =>
     el.gameTubes.appendChild(renderTube(tube, i, false, state.capacities[i])));
-  el.undoBtn.disabled = state.moveHistory.length === 0;
+  el.undoBtn.disabled = state.moveHistory.length === 0 || isDailyNoUndo();
+}
+
+function isDailyNoUndo() {
+  return state.mode === 'daily'
+    && state.dailyChallenge
+    && state.dailyChallenge.modifier.id === 'noUndo';
 }
 
 /* =====================================================================
@@ -938,6 +1206,7 @@ el.backToSelectBtn.addEventListener('click', backToSelect);
 el.completeBackBtn.addEventListener('click', backToSelect);
 
 el.timeAttackBtn.addEventListener('click', startTimeAttack);
+el.dailyBtn.addEventListener('click', startDailyChallenge);
 el.taResultBackBtn.addEventListener('click', exitTimeAttack);
 el.taResultRetryBtn.addEventListener('click', retryTimeAttack);
 
@@ -945,6 +1214,7 @@ el.resetProgressBtn.addEventListener('click', () => {
   if (confirm('לאפס את כל ההתקדמות? פעולה זו לא ניתנת לביטול.')) {
     progress = {};
     saveProgress();
+    saveDailyResults({});
     setTABest(0);
     renderLevelSelect();
   }

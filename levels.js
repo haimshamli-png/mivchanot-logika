@@ -283,15 +283,14 @@ const WORLDS = [
         initial: [['R','G','B','Y'],['G','B','Y','R'],['B','Y','R','J'],['J','G'],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],['J','J']],
         locks:   [{ tubeIndex: 4, unlockAt: 10 }] },
-      // 17 MONSTER FINAL — cross-mechanic: deep lock + a small (cap 2) buffer.
-      // tube0 is frozen for 11 moves while the only roomy buffer is tube3; the
-      // cap-2 tube4 cannot absorb a 3-stack, so the player must juggle staging
-      // tightly. Same puzzle with a cap-4 buffer solves in 22 — the small tube
-      // adds 5 real moves of planning. BFS-verified.
+      // 17 MONSTER FINAL — cross-mechanic: staggered deep locks + a small
+      // (cap 2) buffer. tube0 is frozen for 11 moves and tube1 for 6, so the
+      // opening is a scheduled staging problem, not just a long sort. The cap-2
+      // tube4 cannot absorb a 3-stack, which keeps the final route tight.
       { capacities: [4,4,4,4,2], optimalMoves: 27,
         initial: [['Y','R','B','G'],['G','B','R','Y'],['B','G','Y','R'],[],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]],
-        locks:   [{ tubeIndex: 0, unlockAt: 11 }] }
+        locks:   [{ tubeIndex: 0, unlockAt: 11 }, { tubeIndex: 1, unlockAt: 6 }] }
     ]
   },
 
@@ -636,6 +635,216 @@ const WORLDS = [
         blenders: [3],
         locks: [{ tubeIndex: 3, unlockAt: 6 }],
         tubeColors: [null, null, null, null, null, 'P'] }
+    ]
+  },
+
+  {
+    id: 9,
+    name: 'מעבדת השסתומים',
+    icon: '⛓️',
+    description: 'שסתומים חד-כיווניים: חלק מהמבחנות מקבלות בלבד, חלק משחררות בלבד, וחלק מתהפכות אחרי שימוש.',
+    unlockStars: 119,
+    // Each level may declare:
+    //   valves: [{ tubeIndex, mode: 'in'|'out'|'flip', starts?: 'in'|'out' }]
+    //     in   = destination-only; the tube accepts balls but cannot be a source.
+    //     out  = source-only; the tube can release balls but cannot accept any.
+    //     flip = starts as in/out and toggles after every successful move that
+    //            touches the tube. Undo restores the previous valve state.
+    // All optimalMoves are BFS-verified with valve state included in the key.
+    levels: [
+      // 1: intro — a destination-only valve is a one-way commitment.
+      { capacities: [4,4,4], optimalMoves: 2,
+        initial: [['R'],['R'],[]],
+        target:  [[],[],['R','R']],
+        valves: [{ tubeIndex: 2, mode: 'in' }] },
+      // 2: two destination valves, choose the right final tube for each color.
+      { capacities: [4,4,4,4], optimalMoves: 3,
+        initial: [['R','G'],['R'],['G'],[]],
+        target:  [[],[],['G','G'],['R','R']],
+        valves: [{ tubeIndex: 2, mode: 'in' }, { tubeIndex: 3, mode: 'in' }] },
+      // 3: the same commitment, but colors are buried in opposing stacks.
+      { capacities: [4,4,4,4], optimalMoves: 4,
+        initial: [['R','G'],['G','R'],[],[]],
+        target:  [[],[],['G','G'],['R','R']],
+        valves: [{ tubeIndex: 2, mode: 'in' }, { tubeIndex: 3, mode: 'in' }] },
+      // 4: source-only tubes are reservoirs; once a ball leaves, it cannot go back.
+      { capacities: [4,4,4,4], optimalMoves: 4,
+        initial: [['R','G'],['G','R'],[],[]],
+        target:  [[],[],['R','R'],['G','G']],
+        valves: [{ tubeIndex: 0, mode: 'out' }, { tubeIndex: 1, mode: 'out' }] },
+      // 5: flip valve intro. The first shift tube accepts a ball, then turns
+      // into an exit that must be drained before it can accept again.
+      { capacities: [4,4,4,4], optimalMoves: 5,
+        initial: [['R','R'],[],[],[]],
+        target:  [[],[],['B'],['B']],
+        shifts: [2,3],
+        valves: [{ tubeIndex: 2, mode: 'flip', starts: 'in' }] },
+      // 6: three reds and three greens with one free buffer; valve targets lock
+      // the final commitment.
+      { capacities: [4,4,4,4,4], optimalMoves: 6,
+        initial: [['R','G','R'],['G','R','G'],[],[],[]],
+        target:  [[],[],['R','R','R'],['G','G','G'],[]],
+        valves: [{ tubeIndex: 2, mode: 'in' }, { tubeIndex: 3, mode: 'in' }] },
+      // 7: three colors, source-only reservoirs, destination-only homes.
+      { capacities: [4,4,4,4,4], optimalMoves: 6,
+        initial: [['R','G','B'],['B','G','R'],[],[],[]],
+        target:  [[],[],['R','R'],['G','G'],['B','B']],
+        valves: [
+          { tubeIndex: 0, mode: 'out' }, { tubeIndex: 1, mode: 'out' },
+          { tubeIndex: 2, mode: 'in' },  { tubeIndex: 3, mode: 'in' },
+          { tubeIndex: 4, mode: 'in' }
+        ] },
+      // 8: three 3-stacks sorted through one-way source and home valves.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 9,
+        initial: [['R','G','B'],['B','R','G'],['G','B','R'],[],[],[]],
+        target:  [[],[],[],['R','R','R'],['G','G','G'],['B','B','B']],
+        valves: [
+          { tubeIndex: 0, mode: 'out' }, { tubeIndex: 1, mode: 'out' },
+          { tubeIndex: 2, mode: 'out' }, { tubeIndex: 3, mode: 'in' },
+          { tubeIndex: 4, mode: 'in' },  { tubeIndex: 5, mode: 'in' }
+        ] },
+      // 9: four colors, all exits and homes are one-way.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 8,
+        initial: [['R','G','B','Y'],['Y','B','G','R'],[],[],[],[]],
+        target:  [[],[],['R','R'],['G','G'],['B','B'],['Y','Y']],
+        valves: [
+          { tubeIndex: 0, mode: 'out' }, { tubeIndex: 1, mode: 'out' },
+          { tubeIndex: 2, mode: 'in' },  { tubeIndex: 3, mode: 'in' },
+          { tubeIndex: 4, mode: 'in' },  { tubeIndex: 5, mode: 'in' }
+        ] },
+      // 10 MASTER — four colors, three packed source valves, four one-way
+      // homes. Every early move is a commitment because destination valves do
+      // not give balls back.
+      { capacities: [4,4,4,4,4,4,4,4], optimalMoves: 12,
+        initial: [['R','G','B','Y'],['G','Y','R','B'],['B','R','Y','G'],[],[],[],[],[]],
+        target:  [[],[],[],['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]],
+        valves: [
+          { tubeIndex: 0, mode: 'out' }, { tubeIndex: 1, mode: 'out' },
+          { tubeIndex: 2, mode: 'out' }, { tubeIndex: 3, mode: 'in' },
+          { tubeIndex: 4, mode: 'in' },  { tubeIndex: 5, mode: 'in' },
+          { tubeIndex: 6, mode: 'in' }
+        ] },
+      // 11: two flip valves in the conversion pipeline; route choice matters.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 8,
+        initial: [['R','Y','R','Y'],[],[],[],[],[]],
+        target:  [[],[],['B'],['B'],['G'],['G']],
+        shifts: [2,3,4,5],
+        valves: [{ tubeIndex: 2, mode: 'flip', starts: 'in' }, { tubeIndex: 3, mode: 'flip', starts: 'in' }] },
+      // 12: five conversions with three flipping shift valves; the finished
+      // products compete with half-converted intermediates.
+      { capacities: [5,4,4,4,4,4,4], optimalMoves: 11,
+        initial: [['R','R','R','R','R'],[],[],[],[],[],[]],
+        target:  [[],[],['B'],['B'],['B'],['B'],['B']],
+        shifts: [2,3,4,5,6],
+        valves: [
+          { tubeIndex: 2, mode: 'flip', starts: 'in' },
+          { tubeIndex: 3, mode: 'flip', starts: 'in' },
+          { tubeIndex: 4, mode: 'flip', starts: 'in' }
+        ] },
+      // 13 FINAL — six conversions, wider routing, and three flip valves that
+      // repeatedly close the door behind each conversion.
+      { capacities: [6,4,4,4,4,4,4,4], optimalMoves: 13,
+        initial: [['R','R','R','R','R','R'],[],[],[],[],[],[],[]],
+        target:  [[],[],['B'],['B'],['B'],['B'],['B'],['B']],
+        shifts: [2,3,4,5,6,7],
+        valves: [
+          { tubeIndex: 2, mode: 'flip', starts: 'in' },
+          { tubeIndex: 3, mode: 'flip', starts: 'in' },
+          { tubeIndex: 4, mode: 'flip', starts: 'in' }
+        ] }
+    ]
+  },
+
+  {
+    id: 10,
+    name: 'מסלולי פורטל',
+    icon: '🌀',
+    description: 'פורטלים משנים את הגיאומטריה: כדור שנכנס לפורטל יוצא מיד מהפורטל התאום.',
+    unlockStars: 150,
+    // Each level may declare:
+    //   portals: [{ pair: [tubeA, tubeB] }]
+    // Entering either portal tube redirects the incoming ball to the other tube.
+    // The entry tube stays empty; all capacity, stacking, shifting and mixing
+    // checks are applied to the exit tube. This turns "where do I put it?" into
+    // "which doorway reaches that place?"
+    // All optimalMoves are BFS-verified with portal routing active.
+    levels: [
+      // 1: intro — click the doorway, not the destination. Enter tube 2 to
+      // place the ball in tube 3; clicking tube 3 would send it back to tube 2.
+      { capacities: [4,4,4,4], optimalMoves: 1,
+        initial: [['R'],[],[],[]],
+        target:  [[],[],[],['R']],
+        portals: [{ pair: [2, 3] }] },
+      // 2: one portal handles the buried top ball, while the lower ball goes to
+      // a plain target. The ordering is simple but the route is not spatial.
+      { capacities: [4,4,4,4], optimalMoves: 2,
+        initial: [['R','G'],[],[],[]],
+        target:  [[],[],['R'],['G']],
+        portals: [{ pair: [1, 3] }] },
+      // 3: two portal pairs. The player must map each entry to the opposite
+      // home before moving, because the obvious target click sends the ball
+      // somewhere else.
+      { capacities: [4,4,4,4,4], optimalMoves: 2,
+        initial: [['R','G'],[],[],[],[]],
+        target:  [[],[],['G'],['R'],[]],
+        portals: [{ pair: [1, 3] }, { pair: [4, 2] }] },
+      // 4: three colors and two pairs. The buffer is real, but the homes are
+      // reached through the opposite doors, so route memory starts to matter.
+      { capacities: [4,4,4,4,4], optimalMoves: 3,
+        initial: [['R','G','B'],[],[],[],[]],
+        target:  [[],[],['G'],['R'],['B']],
+        portals: [{ pair: [1, 3] }, { pair: [2, 4] }] },
+      // 5: four colors in one stack. Each home is reached by the opposite
+      // doorway, so the player has to hold a portal map in working memory.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 4,
+        initial: [['R','G','B','Y'],[],[],[],[],[]],
+        target:  [[],[],['Y'],['B'],['G'],['R']],
+        portals: [{ pair: [1, 5] }, { pair: [2, 4] }] },
+      // 6 MASTER SEED — two interleaved source stacks and two portal pairs,
+      // with one doorway briefly sealed. The player must stage the early route
+      // around the lock, then remember that the visible home is not the click.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 9,
+        initial: [['R','G','B','Y'],['Y','B','G','R'],[],[],[],[]],
+        target:  [[],[],['R','R'],['G','G'],['B','B'],['Y','Y']],
+        portals: [{ pair: [1, 5] }, { pair: [2, 4] }],
+        locks: [{ tubeIndex: 5, unlockAt: 3 }] },
+      // 7: portal + shift. Mixed R/Y balls all need to become B, but the shift
+      // tubes are reached through doorway clicks. One entrance is briefly
+      // locked, so the opening decides which half-converted colors queue first.
+      { capacities: [4,4,4,4,4,4,4], optimalMoves: 12,
+        initial: [['Y','R','Y','R'],[],[],[],[],[],[]],
+        target:  [[],[],['B','B'],['B','B'],[],[],[]],
+        shifts: [2,3],
+        portals: [{ pair: [1, 2] }, { pair: [4, 3] }],
+        locks: [{ tubeIndex: 4, unlockAt: 3 }] },
+      // 8: two blacks, a green, and a purple through the same
+      // remote lab. Exact ingredients plus the locked portal make the optimal
+      // route a dependency chain rather than a longer sort.
+      { capacities: [4,4,4,4,4,4,4], optimalMoves: 17,
+        initial: [['B','Y','R','B'],['Y','R','B'],['R','Y','B'],[],[],[],[]],
+        target:  [[],[],[],['K','K'],['G'],['P'],[]],
+        blenders: [3],
+        portals: [{ pair: [6, 3] }],
+        locks: [{ tubeIndex: 6, unlockAt: 3 }] },
+      // 9: the full order — two blacks, two greens and a purple — but without
+      // the colour lock yet. This is the bridge between dependency chains and
+      // the final commitment puzzle.
+      { capacities: [4,4,4,4,4,4,4], optimalMoves: 21,
+        initial: [['B','Y','R','B'],['Y','R','B','Y'],['R','Y','B','B'],[],[],[],[]],
+        target:  [[],[],[],['K','K'],['G','G'],['P'],[]],
+        blenders: [3],
+        portals: [{ pair: [6, 3] }],
+        locks: [{ tubeIndex: 6, unlockAt: 4 }] },
+      // 10 MASTER ARC — the full order: two blacks, two greens and a purple,
+      // with the purple destination color-locked. The player must build each
+      // black from a fresh green while the portal lab opens late.
+      { capacities: [4,4,4,4,4,4,4], optimalMoves: 22,
+        initial: [['B','R','Y','B'],['R','Y','B','Y'],['Y','R','B','B'],[],[],[],[]],
+        target:  [[],[],[],['K','K'],['G','G'],['P'],[]],
+        blenders: [3],
+        portals: [{ pair: [6, 3] }],
+        locks: [{ tubeIndex: 6, unlockAt: 5 }],
+        tubeColors: [null, null, null, null, null, 'P', null] }
     ]
   }
 ];
