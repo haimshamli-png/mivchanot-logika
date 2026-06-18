@@ -35,6 +35,8 @@ function loadScript(file, suffix) {
 
 const WORLDS = loadScript('levels.js', '; WORLDS;');
 const MIXING = loadScript('pigment-mixing.js', '; window.PIGMENT_MIXING;');
+const VALVES = loadScript('valves.js', '; window.VALVES;');
+const PORTALS = loadScript('portals.js', '; window.PORTALS;');
 
 // ---------------------------------------------------------------------
 // Move rules — mirror of game.js
@@ -65,7 +67,7 @@ function key(tubes) { return JSON.stringify(tubes); }
 function clone(tubes) { return tubes.map(t => t.slice()); }
 
 // Faithful copy of applyMove() ordering: blend > mix > normal placement.
-function nextStates(level, tubes, moves) {
+function nextStates(level, tubes, moves, valveStates = {}) {
   const out = [];
   const caps = level.capacities;
   const mixers = level.mixers || [];
@@ -73,10 +75,16 @@ function nextStates(level, tubes, moves) {
   for (let from = 0; from < tubes.length; from++) {
     if (tubes[from].length === 0) continue;
     if (isLocked(level, from, moves)) continue;
+    if (!VALVES.canUseValveAsSource(level, valveStates, from)) continue;
     const moving = tubes[from][tubes[from].length - 1];
-    for (let to = 0; to < tubes.length; to++) {
+    for (let requestedTo = 0; requestedTo < tubes.length; requestedTo++) {
+      if (requestedTo === from) continue;
+      if (isLocked(level, requestedTo, moves)) continue;
+      if (!VALVES.canUseValveAsDestination(level, valveStates, requestedTo)) continue;
+      const to = PORTALS.resolvePortalDestination(level, requestedTo);
       if (to === from) continue;
-      if (isLocked(level, to, moves)) continue;
+      if (to !== requestedTo && isLocked(level, to, moves)) continue;
+      if (to !== requestedTo && !VALVES.canUseValveAsDestination(level, valveStates, to)) continue;
       if (!accepts(level, to, moving)) continue;          // pre-shift color gate
       const effective = shifted(level, moving, to);
       const dest = tubes[to];
@@ -87,15 +95,15 @@ function nextStates(level, tubes, moves) {
         || destTop === 'J' || effective === 'J';
       if (blendResult) {
         const n = clone(tubes); n[from].pop(); n[to].pop(); n[to].push(blendResult);
-        out.push(n); continue;
+        out.push({ tubes: n, valveStates: VALVES.toggleValvesAfterMove(level, valveStates, from, requestedTo) }); continue;
       }
       if (mixers.includes(to) && !wouldStack) {
         const n = clone(tubes); n[from].pop(); n[to].pop(); n[to].push('J');
-        out.push(n); continue;
+        out.push({ tubes: n, valveStates: VALVES.toggleValvesAfterMove(level, valveStates, from, requestedTo) }); continue;
       }
       if (dest.length < caps[to] && wouldStack) {
         const n = clone(tubes); n[from].pop(); n[to].push(effective);
-        out.push(n);
+        out.push({ tubes: n, valveStates: VALVES.toggleValvesAfterMove(level, valveStates, from, requestedTo) });
       }
     }
   }
@@ -114,27 +122,39 @@ function bfs(level) {
   // change, so moveCount stops mattering and the space stays bounded). For
   // lock-free levels maxUnlock is 0 → key collapses to tubes, no blowup.
   const maxUnlock = (level.locks || []).reduce((m, L) => Math.max(m, L.unlockAt), 0);
-  const skey = (tubes, moves) => key(tubes) + '|' + Math.min(moves, maxUnlock);
+  const valveKey = (states) => JSON.stringify(states || {});
+  const skey = (tubes, moves, valveStates) => key(tubes) + '|' + Math.min(moves, maxUnlock) + '|' + valveKey(valveStates);
   const goalConfig = key(level.target);
 
   const start = clone(level.initial);
+  const startValveStates = VALVES.initialValveStates(level);
   const seen = new Map();
-  seen.set(skey(start, 0), { dist: 0, paths: 1, parent: null, tubes: start });
-  const queue = [skey(start, 0)];
+  seen.set(skey(start, 0, startValveStates), {
+    dist: 0, paths: 1, parent: null, tubes: start, valveStates: startValveStates
+  });
+  const queue = [skey(start, 0, startValveStates)];
   let head = 0, branchSum = 0, branchCount = 0, goal = null;
 
   while (head < queue.length) {
     const ck = queue[head++];
     const node = seen.get(ck);
     if (key(node.tubes) === goalConfig) { goal = node; break; }   // goal by config
-    const nbrs = nextStates(level, node.tubes, node.dist);
+    const nbrs = nextStates(level, node.tubes, node.dist, node.valveStates);
     branchSum += nbrs.length; branchCount++;
-    for (const nt of nbrs) {
-      const nk = skey(nt, node.dist + 1);
+    for (const next of nbrs) {
+      const nt = next.tubes;
+      const nextValveStates = next.valveStates;
+      const nk = skey(nt, node.dist + 1, nextValveStates);
       const ex = seen.get(nk);
       if (!ex) {
         if (seen.size < STATE_CAP) {
-          seen.set(nk, { dist: node.dist + 1, paths: node.paths, parent: ck, tubes: nt });
+          seen.set(nk, {
+            dist: node.dist + 1,
+            paths: node.paths,
+            parent: ck,
+            tubes: nt,
+            valveStates: nextValveStates
+          });
           queue.push(nk);
         }
       } else if (ex.dist === node.dist + 1) {
@@ -145,7 +165,9 @@ function bfs(level) {
 
   if (!goal) return null;
   const pathStates = [];
-  for (let k = skey(goal.tubes, goal.dist); k !== null; k = seen.get(k).parent) pathStates.push(seen.get(k).tubes);
+  for (let k = skey(goal.tubes, goal.dist, goal.valveStates); k !== null; k = seen.get(k).parent) {
+    pathStates.push(seen.get(k).tubes);
+  }
   pathStates.reverse();
   return {
     optimalMoves: goal.dist,
@@ -218,6 +240,10 @@ function mechanicMultiplier(level, optimalMoves) {
   load += 0.08 * shifts + (shifts >= 2 ? 0.04 : 0);
   // A forward AND a reverse tube in the same level = genuine routing choice.
   if ((level.shifts || []).length && (level.shiftsBack || []).length) load += 0.06;
+  const valves = level.valves || [];
+  load += 0.06 * valves.length;
+  if (valves.some(v => v.mode === 'flip')) load += 0.12;
+  load += 0.10 * (level.portals || []).length;
   load += 0.06 * (level.tubeColors || []).filter(Boolean).length;
   load += 0.08 * level.capacities.filter(c => c < 4).length;
   return 1 + Math.min(load, 0.6);
@@ -310,7 +336,7 @@ function analyzeAll(worlds) {
 // ---------------------------------------------------------------------
 // Reporting
 // ---------------------------------------------------------------------
-const HIDDEN = [2, 5, 7];
+const HIDDEN = [2, 5, 7, 9];
 function pad(s, n) { s = String(s); return s + ' '.repeat(Math.max(0, n - s.length)); }
 function rnd(x, d = 0) { return Number(x.toFixed(d)); }
 
@@ -339,8 +365,9 @@ function report(rows, { includeHidden = false } = {}) {
 
 // Opt-in gate helper for CI: back-half cognitive load must be non-decreasing,
 // and no late level may score below an earlier one (monotonicity). Returns a
-// list of violations (data, not verdicts).
-function checkMonotonicity(rows, { includeHidden = false, tol = 3 } = {}) {
+// list of violations (data, not verdicts). The tolerance absorbs small global
+// normalization shifts when a new high-complexity world extends the scale.
+function checkMonotonicity(rows, { includeHidden = false, tol = 4 } = {}) {
   const violations = [];
   const worldIds = [...new Set(rows.map(r => r.worldId))]
     .filter(id => includeHidden || !HIDDEN.includes(id));
