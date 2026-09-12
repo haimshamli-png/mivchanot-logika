@@ -32,6 +32,15 @@ assert.deepStrictEqual(
 );
 
 assert.deepStrictEqual(
+  evaluateContracts(
+    { moves: 12, undoCount: 0, violationCount: 0, hintUsed: true },
+    { optimalMoves: 12 }
+  ),
+  { optimal: false, noUndo: true, clean: true },
+  'a hinted run keeps clean/no-undo stamps but forfeits optimal'
+);
+
+assert.deepStrictEqual(
   mergeContracts(
     { optimal: true, noUndo: false },
     { optimal: false, noUndo: true, clean: true }

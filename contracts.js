@@ -24,9 +24,11 @@
     }
   ];
 
+  // A hint reveals the opening of an optimal solution, so a hinted run cannot
+  // claim the "optimal" stamp; the other two stamps are still earnable.
   function evaluateContracts(run, level) {
     return {
-      optimal: run.moves <= level.optimalMoves,
+      optimal: run.moves <= level.optimalMoves && !run.hintUsed,
       noUndo: run.undoCount === 0,
       clean: run.violationCount === 0
     };

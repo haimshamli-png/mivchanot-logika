@@ -18,66 +18,97 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Heebo:wght@400;500;700&family=Suez+One&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="nostalgic">
   <div id="app">
 
-    <!-- ===================== LEVEL SELECT ===================== -->
+    <!-- ===================== HOME / LEVEL SELECT ===================== -->
     <section id="screen-select" class="screen">
       <header class="select-header">
-        <h1>מבחנות הלוגיקה</h1>
-        <button id="settings-btn-select" class="settings-btn-circle" title="הגדרות">⚙</button>
+        <div class="select-title">
+          <h1>מבחנות הלוגיקה</h1>
+          <div class="totals">
+            <span class="total-chip" title="כוכבים"><span id="total-stars">0</span> / <span id="max-stars">0</span> ★</span>
+            <span class="total-chip" title="חותמות אתגר"><span id="total-contracts">0</span> / <span id="max-contracts">0</span> ◎</span>
+          </div>
+        </div>
+        <button id="settings-btn-select" class="settings-btn-circle" title="הגדרות" aria-label="הגדרות">⚙</button>
       </header>
 
-      <div class="total-stars-bar">
-        <span><span id="total-stars">0</span> / <span id="max-stars">0</span> ⭐</span>
+      <!-- Continue where you left off -->
+      <button id="continue-card" class="continue-card">
+        <span class="continue-kicker" id="continue-kicker">המשך מאיפה שעצרת</span>
+        <span class="continue-title" id="continue-title">—</span>
+        <span class="progress-bar" aria-hidden="true"><i id="continue-bar" style="width:0%"></i></span>
+        <span class="continue-row">
+          <span class="continue-sub" id="continue-sub"></span>
+          <span class="continue-go">שחק ←</span>
+        </span>
+      </button>
+
+      <!-- Modes -->
+      <div class="mode-tiles">
+        <button id="daily-btn" class="mode-tile daily-card">
+          <span class="mode-icon">🗓</span>
+          <span class="mode-text">
+            <span class="mode-title">ניסוי יומי</span>
+            <span id="daily-sub" class="mode-sub">חידה מתחלפת עם כלל מעבדה</span>
+          </span>
+        </button>
+        <button id="time-attack-btn" class="mode-tile ta-card">
+          <span class="mode-icon">⚡</span>
+          <span class="mode-text">
+            <span class="mode-title">Time Attack</span>
+            <span class="mode-sub">2 דקות · לוחות חדשים · שיא: <span id="ta-best">—</span></span>
+          </span>
+        </button>
+        <button id="serial-btn" class="mode-tile serial-card">
+          <span class="mode-icon">📺</span>
+          <span class="mode-text">
+            <span class="mode-title">ניסוי השבוע</span>
+            <span id="serial-sub" class="mode-sub">סדרה בשבעה פרקים, פרק ביום</span>
+          </span>
+        </button>
+        <button id="ladder-btn" class="mode-tile ladder-card">
+          <span class="mode-icon">🪜</span>
+          <span class="mode-text">
+            <span class="mode-title">סולם הכיול</span>
+            <span id="ladder-sub" class="mode-sub">עשרה שלבים, ניסיון אחד, בלי חזרה</span>
+          </span>
+        </button>
       </div>
 
-      <button id="time-attack-btn" class="ta-card">
-        <span class="ta-icon">⚡</span>
-        <div class="ta-text">
-          <span class="ta-title">Time Attack</span>
-          <span class="ta-sub">2 דקות · +5 שניות לכל פתרון · שיא: <span id="ta-best">—</span></span>
-        </div>
-      </button>
-
-      <button id="daily-btn" class="daily-card">
-        <span class="daily-icon">🗓</span>
-        <div class="daily-text">
-          <span class="daily-title">ניסוי יומי</span>
-          <span id="daily-sub" class="daily-sub">חידה מתחלפת עם כלל מעבדה מיוחד</span>
-        </div>
-      </button>
-
-      <div id="worlds-container"></div>
-
-      <button id="reset-progress-btn" class="btn-tertiary">איפוס התקדמות</button>
+      <!-- Worlds shelf -->
+      <div id="worlds-container" class="shelf"></div>
     </section>
 
     <!-- ===================== GAME ===================== -->
     <section id="screen-game" class="screen hidden">
-      <!-- Solo header -->
+      <!-- Solo / daily header -->
       <header id="solo-header">
-        <button id="back-btn" class="back-btn" title="חזרה">←</button>
-        <div class="world-context">
-          <span class="info-label">עולם</span>
+        <button id="back-btn" class="back-btn" title="חזרה" aria-label="חזרה">←</button>
+        <div class="level-context">
           <span id="world-name" class="world-name">—</span>
+          <span class="level-line">
+            <span class="info-label">שלב</span>
+            <b id="level-number">1</b>
+            <span id="level-tier" class="tier-chip hidden"></span>
+          </span>
         </div>
-        <div class="info-block">
-          <span class="info-label">שלב</span>
-          <span id="level-number" class="info-value">1</span>
+        <div class="moves-block" title="מהלכים / יעד">
+          <span class="moves-line"><b id="moves">0</b><span class="par">/ <span id="par">—</span></span></span>
+          <span id="live-stars" class="stars-row live-stars"></span>
         </div>
-        <div class="info-block">
-          <span class="info-label">מהלכים</span>
-          <span id="moves" class="info-value">0</span>
-        </div>
-        <button id="settings-btn" class="settings-btn-circle" title="הגדרות">⚙</button>
+        <button id="settings-btn" class="settings-btn-circle" title="הגדרות" aria-label="הגדרות">⚙</button>
       </header>
 
       <!-- Time Attack header -->
       <header id="ta-header" class="hidden">
-        <button id="ta-back-btn" class="back-btn" title="סיים מרוץ">←</button>
+        <button id="ta-back-btn" class="back-btn" title="סיים מרוץ" aria-label="סיים מרוץ">←</button>
         <div class="info-block">
           <span class="info-label">פתרונות</span>
           <span id="ta-solved" class="info-value">0</span>
@@ -85,40 +116,96 @@
         <div class="ta-timer">
           <span id="ta-time" class="ta-time-value">2:00</span>
         </div>
-        <button id="settings-btn-ta" class="settings-btn-circle" title="הגדרות">⚙</button>
+        <button id="settings-btn-ta" class="settings-btn-circle" title="הגדרות" aria-label="הגדרות">⚙</button>
       </header>
 
       <section id="target-section">
-        <div class="target-label">🎯 יעד</div>
+        <div class="target-label">🎯 יעד <span class="target-hint">לחיצה ארוכה מגדילה</span></div>
         <div id="target-tubes" class="tubes-container target"></div>
       </section>
       <section id="game-section">
+        <svg id="pipes-layer" class="pipes-layer hidden" aria-hidden="true"></svg>
         <div id="game-tubes" class="tubes-container game"></div>
         <div id="quick-flash" class="quick-flash hidden">✓</div>
       </section>
 
-      <section id="rule-card" class="rule-card hidden"></section>
+      <section id="rule-card" class="rule-chips hidden"></section>
 
       <footer id="solo-footer">
-        <button id="undo-btn" class="btn-secondary">↶ חזור מהלך</button>
-        <button id="reset-btn" class="btn-secondary">↺ אפס שלב</button>
+        <button id="undo-btn" class="btn-secondary">↶ חזור <span id="undo-count" class="btn-count"></span></button>
+        <button id="hint-btn" class="btn-secondary btn-hint">💡 רמז</button>
+        <button id="reset-btn" class="btn-secondary">↺ אפס</button>
       </footer>
     </section>
 
     <!-- ===================== OVERLAYS ===================== -->
 
-    <!-- Solo win -->
+    <!-- Target zoom (long-press on the card) -->
+    <div id="target-zoom" class="overlay zoom-overlay hidden">
+      <div class="zoom-content">
+        <div class="target-label">🎯 יעד</div>
+        <div id="target-zoom-tubes" class="tubes-container game zoom"></div>
+      </div>
+    </div>
+
+    <!-- Solo / daily win -->
     <div id="win-overlay" class="overlay hidden">
       <div class="overlay-content">
-        <h2>🎉 פתרת את השלב!</h2>
+        <h2 id="win-title">פתרת את השלב</h2>
         <div id="win-stars" class="stars-row big-stars"></div>
-        <p>סיימת ב-<strong><span id="win-moves">0</span></strong> מהלכים
-          <span class="optimal-hint">(אופטימלי: <span id="win-optimal">0</span>)</span></p>
+        <p class="win-numbers">
+          <strong><span id="win-moves">0</span></strong> מהלכים
+          <span class="dot">·</span> יעד <strong><span id="win-optimal">0</span></strong>
+          <span id="win-best-wrap"><span class="dot">·</span> השיא שלך <strong><span id="win-best">—</span></strong></span>
+        </p>
+        <p id="win-record" class="new-best hidden">🏆 שיא אישי חדש</p>
         <p id="win-star-hint" class="star-hint"></p>
         <div id="win-contracts" class="contract-results"></div>
         <div class="win-buttons">
-          <button id="back-to-select-btn" class="btn-secondary">לבחירת שלבים</button>
-          <button id="next-btn" class="btn-primary">השלב הבא →</button>
+          <button id="next-btn" class="btn-primary">השלב הבא ←</button>
+          <div class="win-secondary">
+            <button id="retry-btn" class="btn-secondary">↻ נסה שוב ל-3★</button>
+            <button id="share-btn" class="btn-secondary hidden">📋 שתף תוצאה</button>
+            <button id="back-to-select-btn" class="btn-secondary">לבחירת שלבים</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Serial episode intro / "previously on" -->
+    <div id="serial-overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <p class="eyebrow-text" id="serial-kicker">ניסוי השבוע</p>
+        <h2 id="serial-title">פרק 1</h2>
+        <p id="serial-body" class="star-hint"></p>
+        <div class="win-buttons">
+          <button id="serial-play-btn" class="btn-primary">לפרק ←</button>
+          <div class="win-secondary">
+            <button id="serial-recap-btn" class="btn-secondary hidden">▶ בפרקים הקודמים</button>
+            <button id="serial-close-btn" class="btn-secondary">חזרה</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Replay banner (shown while an optimal solution plays on the board) -->
+    <div id="replay-banner" class="replay-banner hidden">
+      <span id="replay-text">▶ בפרקים הקודמים…</span>
+      <button id="replay-skip-btn" class="btn-secondary small">דלג</button>
+    </div>
+
+    <!-- Ladder result -->
+    <div id="ladder-overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <p class="eyebrow-text">🪜 סולם הכיול</p>
+        <h2 id="ladder-title">הגעת לשלב 4</h2>
+        <p id="ladder-body" class="star-hint"></p>
+        <div id="ladder-rungs" class="ladder-rungs"></div>
+        <div class="win-buttons">
+          <button id="ladder-share-btn" class="btn-primary">📋 שתף</button>
+          <div class="win-secondary">
+            <button id="ladder-back-btn" class="btn-secondary">חזרה לתפריט</button>
+          </div>
         </div>
       </div>
     </div>
@@ -126,7 +213,7 @@
     <!-- World complete -->
     <div id="game-complete-overlay" class="overlay hidden">
       <div class="overlay-content">
-        <h2 id="complete-title">🏆 סיימת את העולם!</h2>
+        <h2 id="complete-title">סיימת את העולם</h2>
         <p id="complete-body">זה הסוף של העולם. עוד עולמות בדרך.</p>
         <button id="complete-back-btn" class="btn-primary">לבחירת שלבים</button>
       </div>
@@ -135,13 +222,15 @@
     <!-- Time Attack results -->
     <div id="ta-result-overlay" class="overlay hidden">
       <div class="overlay-content">
-        <h2 id="ta-result-title">⏱ זמן נגמר</h2>
-        <p>פתרת <strong><span id="ta-result-solved">0</span></strong> שלבים</p>
-        <p id="ta-result-new-best" class="new-best hidden">🏆 שיא חדש!</p>
+        <h2 id="ta-result-title">⏱ הזמן נגמר</h2>
+        <p>פתרת <strong><span id="ta-result-solved">0</span></strong> לוחות</p>
+        <p id="ta-result-new-best" class="new-best hidden">🏆 שיא חדש</p>
         <p class="ta-result-prev">שיא קודם: <span id="ta-result-prev">—</span></p>
         <div class="win-buttons">
-          <button id="ta-result-back-btn" class="btn-secondary">חזרה לתפריט</button>
           <button id="ta-result-retry-btn" class="btn-primary">סיבוב נוסף ↻</button>
+          <div class="win-secondary">
+            <button id="ta-result-back-btn" class="btn-secondary">חזרה לתפריט</button>
+          </div>
         </div>
       </div>
     </div>
@@ -158,11 +247,28 @@
           </div>
         </div>
         <div class="setting-row">
+          <span class="setting-label">צלילים</span>
+          <label class="switch"><input type="checkbox" id="sound-toggle"><span class="slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">רטט</span>
+          <label class="switch"><input type="checkbox" id="haptics-toggle"><span class="slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">יעד רפאים בתוך המבחנות</span>
+          <label class="switch"><input type="checkbox" id="ghost-toggle"><span class="slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">סימנים על הכדורים <small>(עיוורון צבעים)</small></span>
+          <label class="switch"><input type="checkbox" id="symbols-toggle"><span class="slider"></span></label>
+        </div>
+        <div class="setting-row">
           <span class="setting-label">הפחתת אנימציות</span>
-          <label class="switch">
-            <input type="checkbox" id="reduce-anim-toggle">
-            <span class="slider"></span>
-          </label>
+          <label class="switch"><input type="checkbox" id="reduce-anim-toggle"><span class="slider"></span></label>
+        </div>
+        <div class="setting-row danger-row">
+          <span class="setting-label">איפוס כל ההתקדמות</span>
+          <button id="reset-progress-btn" class="btn-tertiary">איפוס…</button>
         </div>
         <button id="settings-close-btn" class="btn-secondary close-btn">סגור</button>
       </div>
@@ -170,14 +276,21 @@
 
     <!-- Win celebration particles container -->
     <div id="celebration" class="celebration hidden"></div>
+    <!-- Flying ball layer for move animation -->
+    <div id="fx-layer" class="fx-layer" aria-hidden="true"></div>
+    <!-- Transient toast (hint / copied) -->
+    <div id="toast" class="toast hidden"></div>
   </div>
 
   <script src="levels.js"></script>
+  <script src="level-meta.js"></script>
   <script src="pigment-mixing.js"></script>
   <script src="valves.js"></script>
   <script src="portals.js"></script>
   <script src="contracts.js"></script>
   <script src="daily-challenge.js"></script>
+  <script src="ta-generator.js"></script>
+  <script src="serial.js"></script>
   <script src="game.js"></script>
 
   <!-- Service worker: enables offline play + instant repeat loads. -->

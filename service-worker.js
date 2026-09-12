@@ -6,17 +6,20 @@
  * clients fetch the new assets. The activate handler cleans up stale caches.
  */
 
-const CACHE_NAME = 'tubes-v15';
+const CACHE_NAME = 'tubes-v17';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './levels.js',
+  './level-meta.js',
   './pigment-mixing.js',
   './valves.js',
   './portals.js',
   './contracts.js',
   './daily-challenge.js',
+  './ta-generator.js',
+  './serial.js',
   './game.js',
   './manifest.webmanifest',
   './icon-192.png',
