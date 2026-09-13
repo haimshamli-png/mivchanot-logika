@@ -27,7 +27,7 @@ const state = {
   undoCount: 0,
   violationCount: 0,
   hintUsed: false,            // a hint forfeits the "optimal" stamp for this run
-  hintArmed: false,           // second tap on the hint button resets to the opening
+  hintActive: false,          // a hint arrow/banner is showing for the current move
   hintFree: false,            // this run's hint was paid with a free-hint token (stamp reward)
   lastViolation: null,        // rule key of the most recent illegal-move feedback (for toast escalation)
   taTimeLeft: 0,
@@ -390,6 +390,8 @@ const el = {
   serialRecapBtn: $('serial-recap-btn'),
   serialCloseBtn: $('serial-close-btn'),
   replayBanner: $('replay-banner'),
+  hintBanner: $('hint-banner'),
+  hintBannerText: $('hint-banner-text'),
   replayText: $('replay-text'),
   replaySkipBtn: $('replay-skip-btn'),
   ladderOverlay: $('ladder-overlay'),
@@ -1304,7 +1306,6 @@ function loadLevelData(level) {
   state.undoCount = 0;
   state.violationCount = 0;
   state.hintUsed = false;
-  state.hintArmed = false;
   state.hintFree = false;
   state.irreversibleSeen = {};
   state.lastViolation = null;
@@ -1331,7 +1332,6 @@ function topBallRect(tubeIndex) {
 function onTubeTap(index, fromReplay = false) {
   if (state.replaying && !fromReplay) return;   // a recap is playing — watch, don't touch
   dismissViolationToast();
-  clearHintMarks();
   if (state.selectedTubeIndex === index) {
     state.selectedTubeIndex = null;
     renderGame(true);
@@ -1504,7 +1504,9 @@ function commitMove(entry, fx) {
   state.moveHistory.push(entry);
   state.moveCount++;
   state.selectedTubeIndex = null;
+  const hintWasActive = state.hintActive;
   renderGame(true);
+  if (hintWasActive) { state.hintActive = true; continueHint(); }
   const landedHome = isBallHome(fx.to, fx.atBottom ? 0 : state.tubes[fx.to].length - 1);
   noteIrreversible(entry, fx, landedHome);
   const won = checkWin();
@@ -1660,6 +1662,39 @@ function resetLevel() {
 function clearHintMarks() {
   document.querySelectorAll('#game-tubes .tube.hint-from, #game-tubes .tube.hint-to')
     .forEach(t => t.classList.remove('hint-from', 'hint-to'));
+  const arrow = document.getElementById('hint-arrow');
+  if (arrow) arrow.remove();
+  if (el.hintBanner) el.hintBanner.classList.add('hidden');
+  state.hintActive = false;
+}
+
+// The hint as a picture: an arrow from the source tube to the destination
+// tube, plus a banner that stays until the move is made.
+function drawHintArrow(from, to, step, total) {
+  const tubeEls = document.querySelectorAll('#game-tubes .tube.game');
+  const a = tubeEls[from], b = tubeEls[to];
+  if (!a || !b) return;
+  const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+  const x1 = ra.left + ra.width / 2, x2 = rb.left + rb.width / 2;
+  const y1 = ra.top - 6, y2 = rb.top - 6;
+  const lift = Math.max(34, Math.min(90, Math.abs(x2 - x1) * 0.35 + 24));
+  const cy = Math.min(y1, y2) - lift;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.id = 'hint-arrow';
+  svg.setAttribute('class', 'hint-arrow');
+  svg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
+  svg.innerHTML =
+    `<defs><marker id="hint-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">` +
+    `<path d="M0,0 L10,5 L0,10 z" fill="var(--gold)"/></marker></defs>` +
+    `<path d="M${x1},${y1} Q${(x1 + x2) / 2},${cy} ${x2},${y2}" fill="none" stroke="var(--gold)" stroke-width="4" stroke-linecap="round" marker-end="url(#hint-head)"/>` +
+    `<circle cx="${x1}" cy="${y1}" r="6" fill="var(--gold)"/>`;
+  el.fxLayer.appendChild(svg);
+  if (el.hintBanner) {
+    el.hintBannerText.textContent = `💡 רמז ${step + 1}/${total}: העבר את הכדור העליון מהמבחנה המהבהבת אל המבחנה המקווקוה, לאורך החץ.`;
+    el.hintBanner.classList.remove('hidden');
+  }
+  state.hintActive = true;
+  state.hintMove = [from, to];
 }
 
 function historyMatchesHint(hint, upTo) {
@@ -1689,32 +1724,40 @@ function showHint() {
   if (step < hint.length && historyMatchesHint(hint, step)) {
     const spentToken = markHintUsed();
     renderHintButton();
-    state.hintArmed = false;
     clearHintMarks();
     const tubeEls = document.querySelectorAll('#game-tubes .tube.game');
     const [from, to] = hint[step];
     if (tubeEls[from]) tubeEls[from].classList.add('hint-from');
     if (tubeEls[to]) tubeEls[to].classList.add('hint-to');
-    const opening = 'הפתיחה מסומנת על הלוח: מהמבחנה המהבהבת אל המבחנה המסומנת.';
-    const cost = spentToken
-      ? ` רמז חופשי מפרס החותמות — חותמת "אופטימום" נשמרת. (נותרו ${getFreeHints()}.)`
-      : state.hintFree ? '' : ' (הרמז מוותר על חותמת "אופטימום" לריצה הזו.)';
-    showToast(step === 0 ? opening + cost : `מהלך ${step + 1} מתוך ${hint.length} ברמז מסומן על הלוח.`, 3600);
+    drawHintArrow(from, to, step, hint.length);
+    if (step === 0 && el.hintBannerText) {
+      el.hintBannerText.textContent += spentToken
+        ? ` רמז חופשי מפרס החותמות (נותרו ${getFreeHints()}).`
+        : state.hintFree ? '' : ' הריצה הזו מוותרת על חותמת "אופטימום".';
+    }
     return;
   }
   if (step >= hint.length && historyMatchesHint(hint, hint.length)) {
-    showToast('הרמז מכסה רק את שלושת המהלכים הראשונים — מכאן זה עליך.');
+    showToast('הרמז מכסה רק את שלושת המהלכים הראשונים — מכאן זה עליך.', 3000);
     return;
   }
-  if (!state.hintArmed) {
-    state.hintArmed = true;
-    showToast('הרמז מראה את הפתיחה. לחיצה נוספת תאפס את השלב ותסמן את המהלך הראשון.', 3600);
-    setTimeout(() => { state.hintArmed = false; }, 4000);
-    return;
-  }
-  state.hintArmed = false;
-  resetLevel();
-  showHint();
+  // The board has left the hinted opening: say so, never reset on the player's behalf.
+  showToast('הרמז מראה את שלושת המהלכים הראשונים, והלוח כבר סטה מהם. לחץ ↺ אפס ואז 💡 רמז.', 3600);
+}
+
+// After each move: if a hint is showing and the player followed it, advance
+// to the next hinted move on its own; if they went another way, drop it.
+function continueHint() {
+  if (!state.hintActive) return;
+  let hint = null;
+  if (state.mode === 'daily') hint = (getLevelMeta(state.dailyChallenge.worldId, state.dailyChallenge.levelIndex) || {}).hint;
+  else if (state.mode === 'serial') { const sm = getSerialMeta(state.serial.season.id, state.serial.index); hint = sm && sm.solution ? sm.solution.slice(0, 3) : null; }
+  else hint = (getLevelMeta(state.currentWorld, state.currentLevel) || {}).hint;
+  clearHintMarks();
+  if (!hint) return;
+  const step = state.moveCount;
+  if (step < hint.length && historyMatchesHint(hint, step)) showHint();
+  else if (step >= hint.length && historyMatchesHint(hint, hint.length)) showToast('זה היה המהלך האחרון ברמז — מכאן זה עליך.', 2600);
 }
 
 // Charge for a hint: spend a free-hint token if one is available (keeps the
@@ -2390,6 +2433,11 @@ function renderGame(suppressOpenAnim = false) {
   // Two-row boards get a compact phone layout so the chips and the footer stay on screen.
   document.body.classList.toggle('rows-2', tubesPerRow(state.tubes.length) < state.tubes.length);
   state.tubes.forEach((tube, i) => el.gameTubes.appendChild(renderTube(tube, i, 'game', state.capacities[i])));
+  if (state.hintActive && state.hintMove) {
+    const tubeEls = el.gameTubes.querySelectorAll('.tube.game');
+    if (tubeEls[state.hintMove[0]]) tubeEls[state.hintMove[0]].classList.add('hint-from');
+    if (tubeEls[state.hintMove[1]]) tubeEls[state.hintMove[1]].classList.add('hint-to');
+  }
   renderPipes();
   el.undoBtn.disabled = state.moveHistory.length === 0 || isDailyNoUndo() || state.mode === 'ladder' || state.replaying;
   el.undoCount.textContent = state.undoCount ? `· ${state.undoCount}` : '';

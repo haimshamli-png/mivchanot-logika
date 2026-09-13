@@ -995,9 +995,9 @@ body:not(.ghost-on) .ball.ghost { display: none; }
 .ball.real.home::after {
   content: '';
   position: absolute;
-  inset: 3px;
+  inset: 4px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.85);
+  border: 1.5px solid rgba(255, 255, 255, 0.38);
   pointer-events: none;
 }
 body:not(.ghost-on) .ball.real.home::after { display: none; }
@@ -1289,6 +1289,9 @@ body[data-theme="modern"] .ladder-card { background: linear-gradient(135deg, rgb
   max-width: 92vw;
 }
 .replay-banner .btn-secondary.small { padding: 6px 12px; font-size: 13px; border-radius: 999px; }
+.hint-banner { top: auto; bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 84px)); border-radius: 14px; padding: 8px 14px; font-size: 13.5px; line-height: 1.35; text-align: center; }
+.hint-arrow { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35)); }
+body.reduce-anim .tube.hint-from { animation: none; box-shadow: 0 0 0 3px var(--gold), var(--tube-shadow); }
 body.replaying .tube.game { cursor: default; }
 .ladder-rungs { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; direction: rtl; }
 .rung {
