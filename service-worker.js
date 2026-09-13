@@ -6,7 +6,7 @@
  * clients fetch the new assets. The activate handler cleans up stale caches.
  */
 
-const CACHE_NAME = 'tubes-v21';
+const CACHE_NAME = 'tubes-v22';
 const ASSETS = [
   './',
   './index.html',
@@ -41,6 +41,17 @@ self.addEventListener('activate', (event) => {
     )
   );
   self.clients.claim();
+  event.waitUntil(announceVersion());
+});
+
+// Tell every open page which version is in charge (shown in settings).
+function announceVersion() {
+  return self.clients.matchAll({ includeUncontrolled: true }).then((clients) =>
+    clients.forEach((c) => c.postMessage({ version: CACHE_NAME }))
+  );
+}
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'GET_VERSION' && event.source) event.source.postMessage({ version: CACHE_NAME });
 });
 
 self.addEventListener('fetch', (event) => {

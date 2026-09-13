@@ -290,6 +290,7 @@
           <span class="setting-label">איפוס כל ההתקדמות</span>
           <button id="reset-progress-btn" class="btn-tertiary">איפוס…</button>
         </div>
+        <p id="app-version" class="app-version" title="לחיצה בודקת אם יש גרסה חדשה">גרסה: —</p>
         <button id="settings-close-btn" class="btn-secondary close-btn">סגור</button>
       </div>
     </div>
@@ -326,11 +327,24 @@
         reloaded = true;
         window.location.reload();
       });
+      // Version label in settings: the worker announces its cache name.
+      const versionEl = () => document.getElementById('app-version');
+      const showVersion = (v) => { const el = versionEl(); if (!el) return; if (v) el.dataset.v = v; el.textContent = 'גרסה: ' + (el.dataset.v ? el.dataset.v.replace(/^tubes-/, '') : '—'); };
+      navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.version) showVersion(e.data.version); });
+      const checkForUpdate = () => navigator.serviceWorker.getRegistration()
+        .then((reg) => reg && reg.update()).catch(() => {});
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('service-worker.js')
           .then((reg) => { reg.update().catch(() => {}); })   // look for a newer version on every launch
           .catch(() => {});
+        if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' });
+        const el = versionEl();
+        if (el) el.addEventListener('click', () => { checkForUpdate(); el.textContent += ' · בודק…'; setTimeout(() => showVersion(), 1500); });
       });
+      // A home-screen app can stay resident for days without a "load" event,
+      // so also look for a new version whenever it returns to the foreground.
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+      setInterval(checkForUpdate, 60 * 60 * 1000);
     }
   </script>
 </body>
