@@ -6,7 +6,7 @@
  * clients fetch the new assets. The activate handler cleans up stale caches.
  */
 
-const CACHE_NAME = 'tubes-v20';
+const CACHE_NAME = 'tubes-v21';
 const ASSETS = [
   './',
   './index.html',

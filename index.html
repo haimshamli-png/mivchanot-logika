@@ -35,6 +35,7 @@
             <span class="total-chip" title="כוכבים"><span id="total-stars">0</span> / <span id="max-stars">0</span> ★</span>
             <span class="total-chip" title="חותמות אתגר"><span id="total-contracts">0</span> / <span id="max-contracts">0</span> ◎</span>
           </div>
+          <div id="stamp-rank" class="stamp-rank hidden"></div>
         </div>
         <button id="settings-btn-select" class="settings-btn-circle" title="הגדרות" aria-label="הגדרות">⚙</button>
       </header>
@@ -63,7 +64,7 @@
           <span class="mode-icon">⚡</span>
           <span class="mode-text">
             <span class="mode-title">Time Attack</span>
-            <span class="mode-sub">2 דקות · לוחות חדשים · שיא: <span id="ta-best">—</span></span>
+            <span class="mode-sub">2 דקות · שיא: <span id="ta-best">—</span> לוחות · <span id="ta-best-score">—</span></span>
           </span>
         </button>
         <button id="serial-btn" class="mode-tile serial-card">
@@ -112,6 +113,8 @@
         <div class="info-block">
           <span class="info-label">פתרונות</span>
           <span id="ta-solved" class="info-value">0</span>
+          <span class="info-label">נק'</span>
+          <span id="ta-score" class="info-value">0</span>
         </div>
         <div class="ta-timer">
           <span id="ta-time" class="ta-time-value">2:00</span>
@@ -160,6 +163,7 @@
         </p>
         <p id="win-record" class="new-best hidden">🏆 שיא אישי חדש</p>
         <p id="win-star-hint" class="star-hint"></p>
+        <p id="win-milestone" class="win-milestone hidden"></p>
         <div id="win-contracts" class="contract-results"></div>
         <div class="win-buttons">
           <button id="next-btn" class="btn-primary">השלב הבא ←</button>
@@ -167,6 +171,20 @@
             <button id="retry-btn" class="btn-secondary">↻ נסה שוב ל-3★</button>
             <button id="share-btn" class="btn-secondary hidden">📋 שתף תוצאה</button>
             <button id="back-to-select-btn" class="btn-secondary">לבחירת שלבים</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily tier chooser -->
+    <div id="daily-overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <p class="eyebrow-text" id="daily-kicker">ניסוי יומי</p>
+        <h2>בחר דרגה</h2>
+        <div id="daily-tiers" class="daily-tiers"></div>
+        <div class="win-buttons">
+          <div class="win-secondary">
+            <button id="daily-close-btn" class="btn-secondary">חזרה</button>
           </div>
         </div>
       </div>
@@ -223,9 +241,11 @@
     <div id="ta-result-overlay" class="overlay hidden">
       <div class="overlay-content">
         <h2 id="ta-result-title">⏱ הזמן נגמר</h2>
-        <p>פתרת <strong><span id="ta-result-solved">0</span></strong> לוחות</p>
-        <p id="ta-result-new-best" class="new-best hidden">🏆 שיא חדש</p>
-        <p class="ta-result-prev">שיא קודם: <span id="ta-result-prev">—</span></p>
+        <p>פתרת <strong><span id="ta-result-solved">0</span></strong> לוחות · <strong><span id="ta-result-score">0</span></strong> נק'</p>
+        <p class="ta-result-prev">דיוק: <span id="ta-result-precision">—</span> · כל לוח שווה עד 100 נק' לפי הקרבה לאופטימום</p>
+        <p id="ta-result-new-best" class="new-best hidden">🏆 שיא לוחות חדש</p>
+        <p id="ta-result-new-best-score" class="new-best hidden">🎯 שיא נקודות חדש</p>
+        <p class="ta-result-prev">שיא קודם: <span id="ta-result-prev">—</span> לוחות · <span id="ta-result-prev-score">—</span> נק'</p>
         <div class="win-buttons">
           <button id="ta-result-retry-btn" class="btn-primary">סיבוב נוסף ↻</button>
           <div class="win-secondary">

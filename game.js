@@ -28,12 +28,14 @@ const state = {
   violationCount: 0,
   hintUsed: false,            // a hint forfeits the "optimal" stamp for this run
   hintArmed: false,           // second tap on the hint button resets to the opening
+  hintFree: false,            // this run's hint was paid with a free-hint token (stamp reward)
   lastViolation: null,        // rule key of the most recent illegal-move feedback (for toast escalation)
   taTimeLeft: 0,
   taTimerId: null,
   taSolved: 0,
   taRound: 0,
   taRng: null,
+  taBoards: [],               // { moves, optimalMoves } per solved Time Attack board (accuracy score)
   dailyChallenge: null,
   serial: null,               // { season, index } while playing the weekly serial
   replaying: false,           // a recorded solution is playing on the board
@@ -49,6 +51,8 @@ const state = {
 const THEME_KEY = 'tubes-theme';
 const PROGRESS_KEY = 'tubes-progress';
 const TA_BEST_KEY = 'tubes-ta-best';
+const TA_BEST_SCORE_KEY = 'tubes-ta-best-score';
+const FREE_HINTS_USED_KEY = 'tubes-free-hints-used';
 const DAILY_RESULTS_KEY = 'tubes-daily-results';
 const REDUCE_ANIM_KEY = 'tubes-reduce-anim';
 const SOUND_KEY = 'tubes-sound';
@@ -357,6 +361,7 @@ const el = {
   maxStars: $('max-stars'),
   totalContracts: $('total-contracts'),
   maxContracts: $('max-contracts'),
+  stampRank: $('stamp-rank'),
   settingsBtnSelect: $('settings-btn-select'),
   resetProgressBtn: $('reset-progress-btn'),
   continueCard: $('continue-card'),
@@ -366,8 +371,13 @@ const el = {
   continueSub: $('continue-sub'),
   timeAttackBtn: $('time-attack-btn'),
   taBest: $('ta-best'),
+  taBestScore: $('ta-best-score'),
   dailyBtn: $('daily-btn'),
   dailySub: $('daily-sub'),
+  dailyOverlay: $('daily-overlay'),
+  dailyKicker: $('daily-kicker'),
+  dailyTiers: $('daily-tiers'),
+  dailyCloseBtn: $('daily-close-btn'),
   serialBtn: $('serial-btn'),
   serialSub: $('serial-sub'),
   ladderBtn: $('ladder-btn'),
@@ -403,6 +413,7 @@ const el = {
   taHeader: $('ta-header'),
   taBackBtn: $('ta-back-btn'),
   taSolved: $('ta-solved'),
+  taScore: $('ta-score'),
   taTime: $('ta-time'),
   settingsBtnTa: $('settings-btn-ta'),
   quickFlash: $('quick-flash'),
@@ -429,6 +440,7 @@ const el = {
   winRecord: $('win-record'),
   winStars: $('win-stars'),
   winStarHint: $('win-star-hint'),
+  winMilestone: $('win-milestone'),
   winContracts: $('win-contracts'),
   nextBtn: $('next-btn'),
   retryBtn: $('retry-btn'),
@@ -440,8 +452,12 @@ const el = {
   completeBackBtn: $('complete-back-btn'),
   taResultOverlay: $('ta-result-overlay'),
   taResultSolved: $('ta-result-solved'),
+  taResultScore: $('ta-result-score'),
+  taResultPrecision: $('ta-result-precision'),
   taResultNewBest: $('ta-result-new-best'),
+  taResultNewBestScore: $('ta-result-new-best-score'),
   taResultPrev: $('ta-result-prev'),
+  taResultPrevScore: $('ta-result-prev-score'),
   taResultBackBtn: $('ta-result-back-btn'),
   taResultRetryBtn: $('ta-result-retry-btn'),
 
@@ -557,10 +573,36 @@ function getTABest() {
   return Number.isFinite(v) ? v : 0;
 }
 function setTABest(n) { try { localStorage.setItem(TA_BEST_KEY, String(n)); } catch (e) {} }
+function getTABestScore() {
+  const v = parseInt(localStorage.getItem(TA_BEST_SCORE_KEY) || '0', 10);
+  return Number.isFinite(v) ? v : 0;
+}
+function setTABestScore(n) { try { localStorage.setItem(TA_BEST_SCORE_KEY, String(n)); } catch (e) {} }
 
+// Stamp rewards: every 25 challenge stamps grants one free hint — a hint
+// that keeps the "optimal" stamp. Tokens = milestones reached − tokens spent.
+function getFreeHintsUsed() {
+  const v = parseInt(localStorage.getItem(FREE_HINTS_USED_KEY) || '0', 10);
+  return Number.isFinite(v) ? v : 0;
+}
+function setFreeHintsUsed(n) { try { localStorage.setItem(FREE_HINTS_USED_KEY, String(n)); } catch (e) {} }
+function getFreeHints() {
+  const api = getContractApi();
+  if (!api) return 0;
+  return Math.max(0, api.milestonesReached(getTotalContracts()) - getFreeHintsUsed());
+}
+
+// Day entries are normalised on read so pre-tier history (one result per
+// day) still counts for streaks and shows up as the middle tier.
 function getDailyResults() {
-  try { return JSON.parse(localStorage.getItem(DAILY_RESULTS_KEY) || '{}'); }
-  catch (e) { return {}; }
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem(DAILY_RESULTS_KEY) || '{}'); }
+  catch (e) { raw = {}; }
+  const api = getDailyApi();
+  if (!api) return raw;
+  const out = {};
+  Object.keys(raw).forEach((k) => { out[k] = api.normalizeDayResult(raw[k]); });
+  return out;
 }
 function saveDailyResults(results) {
   try { localStorage.setItem(DAILY_RESULTS_KEY, JSON.stringify(results)); } catch (e) {}
@@ -568,19 +610,21 @@ function saveDailyResults(results) {
 function recordDailyResult(challenge, moves, stars, modifierPassed) {
   if (!challenge) return;
   const results = getDailyResults();
-  const existing = results[challenge.key];
+  const day = results[challenge.key] || { modifierId: challenge.modifier.id, tiers: {} };
+  if (!day.tiers) day.tiers = {};
+  const existing = day.tiers[challenge.tier];
   if (!existing || stars > existing.stars || (stars === existing.stars && moves < existing.bestMoves)) {
-    results[challenge.key] = {
+    day.tiers[challenge.tier] = {
       worldId: challenge.worldId,
       levelIndex: challenge.levelIndex,
-      modifierId: challenge.modifier.id,
       stars,
       bestMoves: moves,
-      modifierPassed: !!modifierPassed
+      modifierPassed: !!modifierPassed || !!(existing && existing.modifierPassed)
     };
   } else if (modifierPassed && !existing.modifierPassed) {
-    results[challenge.key] = { ...existing, modifierPassed: true };
+    day.tiers[challenge.tier] = { ...existing, modifierPassed: true };
   }
+  results[challenge.key] = day;
   saveDailyResults(results);
 }
 
@@ -753,33 +797,98 @@ function getUnlockedWorldIds() {
   return visibleWorlds().filter(w => isWorldUnlocked(w) && !w.expert).map(w => w.id);
 }
 
-function getTodaysDailyChallenge() {
+// Today's bundle: one lab rule, three puzzles (easy / medium / hard) drawn
+// from the unlocked pool ranked by composite difficulty score.
+function getTodaysDaily() {
   const api = getDailyApi();
   if (!api) return null;
-  return api.pickDailyChallenge(WORLDS, new Date(), {
+  return api.pickDailyChallenges(WORLDS, new Date(), {
     hiddenWorldIds: HIDDEN_WORLD_IDS,
-    allowedWorldIds: getUnlockedWorldIds()
+    allowedWorldIds: getUnlockedWorldIds(),
+    scoreOf: (worldId, levelIndex) => { const m = getLevelMeta(worldId, levelIndex); return m ? m.score : null; }
   });
+}
+function getTodaysDailyChallenge(tierId = 'medium') {
+  const bundle = getTodaysDaily();
+  if (!bundle) return null;
+  return bundle.tiers.find(t => t.tier === tierId) || bundle.tiers[1];
+}
+function dailyTierStatus(tierId, dayEntry) {
+  const api = getDailyApi();
+  return api ? api.tierResult(dayEntry, tierId) : null;
 }
 
 function renderDailyCard() {
   if (!el.dailyBtn || !el.dailySub) return;
   const api = getDailyApi();
-  const challenge = getTodaysDailyChallenge();
-  if (!challenge) {
+  const bundle = getTodaysDaily();
+  if (!bundle) {
     el.dailyBtn.disabled = true;
     el.dailySub.textContent = 'אין היום ניסוי זמין';
     return;
   }
-  const world = getWorld(challenge.worldId);
   const results = getDailyResults();
-  const result = results[challenge.key];
-  const streak = api.computeStreak(results, challenge.key);
-  const parts = [`${challenge.modifier.icon} ${challenge.modifier.label}`, `${world.icon} שלב ${challenge.levelIndex + 1}`];
-  if (result) parts.push(result.modifierPassed ? 'הושלם ✓' : `שיא ${result.bestMoves}`);
+  const day = results[bundle.key];
+  const streak = api.computeStreak(results, bundle.key);
+  const tiersRow = bundle.tiers.map((t) => {
+    const r = dailyTierStatus(t.tier, day);
+    return `${t.tierIcon}${r ? (r.modifierPassed ? '✓' : '○') : ''}`;
+  }).join(' ');
+  const parts = [`${bundle.modifier.icon} ${bundle.modifier.label}`, tiersRow];
   if (streak.current > 0) parts.push(`🔥 רצף ${streak.current}`);
   el.dailyBtn.disabled = false;
   el.dailySub.textContent = parts.join(' · ');
+}
+
+// Tier chooser overlay: three cards, each with its puzzle, level tier and
+// today's result on it.
+function openDailyChooser() {
+  const bundle = getTodaysDaily();
+  if (!bundle) return;
+  const results = getDailyResults();
+  const day = results[bundle.key];
+  const streak = getDailyApi().computeStreak(results, bundle.key);
+  el.dailyKicker.textContent = `🗓 ניסוי יומי · ${bundle.key}` + (streak.current > 0 ? ` · 🔥 רצף ${streak.current}` : '');
+  el.dailyTiers.innerHTML = '';
+  bundle.tiers.forEach((t) => {
+    const world = getWorld(t.worldId);
+    const meta = getLevelMeta(t.worldId, t.levelIndex);
+    const r = dailyTierStatus(t.tier, day);
+    const btn = document.createElement('button');
+    btn.className = `daily-tier tier-${t.tier}` + (r ? ' done' : '');
+    const status = r
+      ? (r.modifierPassed ? `הושלם ✓ · ${r.bestMoves} מהלכים` : `נפתר ○ · שיא ${r.bestMoves} · הכלל עוד פתוח`)
+      : `יעד ${t.level.optimalMoves} מהלכים`;
+    btn.innerHTML =
+      `<span class="daily-tier-head"><span class="daily-tier-name">${t.tierIcon} ${t.tierLabel}</span>` +
+      (meta && TIER_LABEL[meta.tier] ? `<span class="tier-chip tier-${meta.tier}">${TIER_LABEL[meta.tier]}</span>` : '') + `</span>` +
+      `<span class="daily-tier-level">${world.icon} ${world.name} · שלב ${t.levelIndex + 1}</span>` +
+      `<span class="daily-tier-status">${status}</span>`;
+    btn.addEventListener('click', () => { closeDailyChooser(); startDailyChallenge(t.tier); });
+    el.dailyTiers.appendChild(btn);
+  });
+  const m = bundle.modifier;
+  el.dailyTiers.insertAdjacentHTML('beforeend',
+    `<p class="daily-rule">${m.icon} <b>${m.label}</b> — ${m.description} הכלל של היום חל על שלוש הדרגות.</p>`);
+  el.dailyOverlay.classList.remove('hidden');
+}
+function closeDailyChooser() { el.dailyOverlay.classList.add('hidden'); }
+
+// Stamp rank line under the totals: current title, distance to the next
+// reward, and unspent free hints.
+function renderStampRank() {
+  if (!el.stampRank) return;
+  const api = getContractApi();
+  if (!api) { el.stampRank.textContent = ''; return; }
+  const total = getTotalContracts();
+  const rank = api.rankFor(total);
+  const free = getFreeHints();
+  const parts = [];
+  if (rank.title) parts.push(`◎ ${rank.title}`);
+  if (!rank.maxed) parts.push(`עוד ${rank.remaining} חותמות לפרס הבא`);
+  if (free > 0) parts.push(`💡 ${free} ${free === 1 ? 'רמז חופשי' : 'רמזים חופשיים'}`);
+  el.stampRank.textContent = parts.join(' · ');
+  el.stampRank.classList.toggle('hidden', parts.length === 0);
 }
 
 function renderLevelSelect() {
@@ -869,6 +978,8 @@ function renderLevelSelect() {
   el.totalContracts.textContent = getTotalContracts();
   el.maxContracts.textContent = getMaxContracts();
   el.taBest.textContent = getTABest() || '—';
+  el.taBestScore.textContent = getTABestScore() ? `${getTABestScore()} נק'` : '—';
+  renderStampRank();
   renderDailyCard();
   renderSerialCard();
   renderLadderCard();
@@ -882,8 +993,19 @@ function currentSeason() {
   const api = getSerialApi();
   if (!api || !api.SERIAL_SEASONS.length) return null;
   const rec = getSerialRecord();
-  const active = rec && api.SERIAL_SEASONS.find(s => s.id === rec.seasonId);
-  return active || api.SERIAL_SEASONS[0];
+  const seasons = api.SERIAL_SEASONS;
+  const active = rec && seasons.find(s => s.id === rec.seasonId);
+  return active || seasons[0];
+}
+
+// The season after the active one, if it exists (offered once the active
+// season is complete).
+function nextSeason() {
+  const api = getSerialApi();
+  const season = currentSeason();
+  if (!api || !season) return null;
+  const i = api.SERIAL_SEASONS.findIndex(s => s.id === season.id);
+  return api.SERIAL_SEASONS[i + 1] || null;
 }
 
 function serialProgress() {
@@ -899,7 +1021,10 @@ function renderSerialCard() {
   if (!sp) { el.serialBtn.disabled = true; el.serialSub.textContent = 'אין עונה זמינה'; return; }
   const { season, progress } = sp;
   el.serialBtn.disabled = false;
-  if (progress.complete) el.serialSub.textContent = `${season.title} · העונה הושלמה ✓`;
+  if (progress.complete) {
+    const next = nextSeason();
+    el.serialSub.textContent = next ? `${season.title} הושלמה ✓ · ${next.title}: פרק 1 מוכן` : `${season.title} · העונה הושלמה ✓`;
+  }
   else if (!progress.started) el.serialSub.textContent = `${season.title} · פרק 1 מוכן`;
   else if (progress.waitingForTomorrow) el.serialSub.textContent = `${progress.solvedCount} / ${progress.total} · הפרק הבא מחר`;
   else el.serialSub.textContent = `פרק ${progress.currentIndex + 1} מתוך ${progress.total} מחכה`;
@@ -912,6 +1037,19 @@ function openSerial() {
   const i = progress.currentIndex;
   const ep = season.episodes[i];
   el.serialKicker.textContent = `📺 ניסוי השבוע · ${season.title}`;
+  const next = progress.complete ? nextSeason() : null;
+  if (progress.complete && next) {
+    el.serialTitle.textContent = `העונה הבאה: ${next.title}`;
+    el.serialBody.textContent = `"${season.title}" הושלמה. ${ep.teaser || ''} שבעה פרקים חדשים, פרק ביום.`;
+    el.serialPlayBtn.textContent = 'להתחיל את העונה החדשה ←';
+    el.serialPlayBtn.disabled = false;
+    el.serialRecapBtn.classList.remove('hidden');
+    el.serialRecapBtn.textContent = `▶ הפתרון של הפרק האחרון ב"${season.title}"`;
+    el.serialRecapBtn.onclick = () => playRecap(season, progress.total - 1, () => { showScreen('select'); });
+    el.serialPlayBtn.onclick = () => startSerialEpisode(next, 0);
+    el.serialOverlay.classList.remove('hidden');
+    return;
+  }
   if (progress.complete) {
     el.serialTitle.textContent = 'העונה הושלמה';
     el.serialBody.textContent = `כל ${progress.total} הפרקים פתורים. אפשר לצפות שוב בפתרון של הפרק האחרון, או לשחק אותו שוב.`;
@@ -1131,8 +1269,8 @@ function startSoloLevel(worldId, levelIndex) {
   renderGame();
 }
 
-function startDailyChallenge() {
-  const challenge = getTodaysDailyChallenge();
+function startDailyChallenge(tierId = 'medium') {
+  const challenge = getTodaysDailyChallenge(tierId);
   if (!challenge) return;
   state.mode = 'daily';
   state.dailyChallenge = challenge;
@@ -1167,6 +1305,8 @@ function loadLevelData(level) {
   state.violationCount = 0;
   state.hintUsed = false;
   state.hintArmed = false;
+  state.hintFree = false;
+  state.irreversibleSeen = {};
   state.lastViolation = null;
   clearHintMarks();
 }
@@ -1366,6 +1506,7 @@ function commitMove(entry, fx) {
   state.selectedTubeIndex = null;
   renderGame(true);
   const landedHome = isBallHome(fx.to, fx.atBottom ? 0 : state.tubes[fx.to].length - 1);
+  noteIrreversible(entry, fx, landedHome);
   const won = checkWin();
   const fell = !won && state.mode === 'ladder' && !state.replaying && ladderFailed();
   animateMove(fx, () => {
@@ -1376,6 +1517,26 @@ function commitMove(entry, fx) {
     if (won) handleWin();
     else if (fell) { playSound('error'); haptic('error'); setTimeout(() => endLadder('fell'), 350); }
   });
+}
+
+// First-time-in-this-level notices for moves that only Undo can take back
+// (chute, blend, centrifuge flip), and for a ball that just hardened away
+// from home. Skipped during replays and in Time Attack.
+function noteIrreversible(entry, fx, landedHome) {
+  if (state.replaying || state.mode === 'ta') return;
+  const seen = state.irreversibleSeen || (state.irreversibleSeen = {});
+  const first = (k) => { if (seen[k]) return false; seen[k] = true; return true; };
+  const hardened = entry.original !== undefined && budgetOf(entry.original) === 1 && !entry.mixed;
+  if (hardened) {
+    const inBlender = state.blenders.includes(fx.to);
+    if (landedHome) { if (first('hard-home')) showToast('⌛ הכדור התקשה — בבית שלו.', 2200); }
+    else if (inBlender) { if (first('hard-blender')) showToast('⌛ הכדור התקשה במעבדה. רק ערבוב עם בן-הזוג שלו יזיז אותו מכאן.', 3200); }
+    else showToast('⌛ הכדור התקשה מחוץ לביתו. רק Undo מחזיר אותו.', 3200);
+    return;
+  }
+  if (entry.mixed && first('blend')) showToast('⚗️ שני כדורים הפכו לאחד. רק Undo מפריד אותם.', 2600);
+  else if (entry.flipped && first('flip')) showToast('🌪 הצנטריפוגה התהפכה: התחתון למעלה. Undo מחזיר את ההיפוך.', 2600);
+  else if (entry.viaBottom && first('chute')) showToast('⤵ הכדור נקבר בתחתית. Undo מחזיר אותו.', 2400);
 }
 
 // Does the ball at position `pos` of tube `t` sit in its final target slot
@@ -1487,7 +1648,7 @@ function undo() {
 function resetLevel() {
   if (state.replaying) return;
   if (state.mode === 'solo') startSoloLevel(state.currentWorld, state.currentLevel);
-  if (state.mode === 'daily') startDailyChallenge();
+  if (state.mode === 'daily') startDailyChallenge(state.dailyChallenge.tier);
   if (state.mode === 'serial') startSerialEpisode(state.serial.season, state.serial.index);
   if (state.mode === 'ladder') {
     // One try per rung: resetting is giving up on it.
@@ -1526,16 +1687,19 @@ function showHint() {
   if (!hint || !hint.length) { showToast('אין רמז לשלב הזה'); return; }
   const step = state.moveCount;
   if (step < hint.length && historyMatchesHint(hint, step)) {
-    state.hintUsed = true;
+    const spentToken = markHintUsed();
+    renderHintButton();
     state.hintArmed = false;
     clearHintMarks();
     const tubeEls = document.querySelectorAll('#game-tubes .tube.game');
     const [from, to] = hint[step];
     if (tubeEls[from]) tubeEls[from].classList.add('hint-from');
     if (tubeEls[to]) tubeEls[to].classList.add('hint-to');
-    showToast(step === 0
-      ? 'הפתיחה מסומנת על הלוח: מהמבחנה המהבהבת אל המבחנה המסומנת. (הרמז מוותר על חותמת "אופטימום" לריצה הזו.)'
-      : `מהלך ${step + 1} מתוך ${hint.length} ברמז מסומן על הלוח.`, 3200);
+    const opening = 'הפתיחה מסומנת על הלוח: מהמבחנה המהבהבת אל המבחנה המסומנת.';
+    const cost = spentToken
+      ? ` רמז חופשי מפרס החותמות — חותמת "אופטימום" נשמרת. (נותרו ${getFreeHints()}.)`
+      : state.hintFree ? '' : ' (הרמז מוותר על חותמת "אופטימום" לריצה הזו.)';
+    showToast(step === 0 ? opening + cost : `מהלך ${step + 1} מתוך ${hint.length} ברמז מסומן על הלוח.`, 3600);
     return;
   }
   if (step >= hint.length && historyMatchesHint(hint, hint.length)) {
@@ -1550,8 +1714,21 @@ function showHint() {
   }
   state.hintArmed = false;
   resetLevel();
-  state.hintUsed = true;
   showHint();
+}
+
+// Charge for a hint: spend a free-hint token if one is available (keeps the
+// "optimal" stamp), otherwise the run forfeits that stamp. One charge per run.
+// Returns true when a token was spent just now.
+function markHintUsed() {
+  if (state.hintFree || state.hintUsed) return false;
+  if ((state.mode === 'solo' || state.mode === 'daily') && getFreeHints() > 0) {
+    setFreeHintsUsed(getFreeHintsUsed() + 1);
+    state.hintFree = true;
+    return true;
+  }
+  state.hintUsed = true;
+  return false;
 }
 
 /* =====================================================================
@@ -1592,9 +1769,11 @@ function showSoloWin() {
     : earnedContracts;
   const modifierPassed = isDaily && dailyApi ? dailyApi.evaluateDailyModifier(state.dailyChallenge, run) : false;
   let isRecord = false;
+  const stampsBefore = getTotalContracts();
   if (isDaily) recordDailyResult(state.dailyChallenge, state.moveCount, stars, modifierPassed);
   else if (isSerial) recordSerialResult(state.moveCount, stars);
   else isRecord = recordResult(state.currentWorld, state.currentLevel, state.moveCount, stars, earnedContracts).isRecord;
+  renderStampMilestone(stampsBefore, getTotalContracts());
 
   el.winTitle.textContent = isSerial
     ? `פרק ${state.serial.index + 1} הושלם`
@@ -1613,20 +1792,24 @@ function showSoloWin() {
   const step = Math.max(1, Math.ceil(level.optimalMoves / 6));
   const grace = Math.ceil(step / 2);
   let nextEpisodePlayable = false;
+  let nextDailyTier = null;
   if (isDaily) {
     const modifier = state.dailyChallenge.modifier;
-    const streak = dailyApi ? dailyApi.computeStreak(getDailyResults(), state.dailyChallenge.key) : { current: 0 };
+    const results = getDailyResults();
+    const streak = dailyApi ? dailyApi.computeStreak(results, state.dailyChallenge.key) : { current: 0 };
+    nextDailyTier = nextUnsolvedDailyTier(results[state.dailyChallenge.key]);
     el.winStarHint.textContent = (modifierPassed
-      ? `הניסוי היומי הושלם: ${modifier.icon} ${modifier.label}.`
+      ? `${state.dailyChallenge.tierIcon} דרגה ${state.dailyChallenge.tierLabel} הושלמה: ${modifier.icon} ${modifier.label}.`
       : `פתרת את החידה. כלל הניסוי "${modifier.label}" עוד מחכה לריצה נקייה יותר.`)
-      + (streak.current > 1 ? ` 🔥 רצף ${streak.current} ימים.` : '');
+      + (streak.current > 1 ? ` 🔥 רצף ${streak.current} ימים.` : '')
+      + (!nextDailyTier && dailyDayComplete(results[state.dailyChallenge.key]) ? ' שלוש הדרגות של היום מאחוריך.' : '');
   } else if (isSerial) {
     const { season, index } = state.serial;
     const ep = season.episodes[index];
     const sp = serialProgress();
     nextEpisodePlayable = !!(sp && index + 1 < season.episodes.length && sp.progress.isPlayable(index + 1));
     el.winStarHint.textContent = index + 1 >= season.episodes.length
-      ? 'זה היה הפרק האחרון של העונה. סיימת את ניסוי השבוע.'
+      ? (nextSeason() ? `זה היה הפרק האחרון של "${season.title}". ${ep.teaser || ''} העונה הבאה מחכה במסך הבית.` : 'זה היה הפרק האחרון של העונה. סיימת את ניסוי השבוע.')
       : (ep.teaser ? `בפרק הבא: ${ep.teaser}` : 'הפרק הבא ממשיך בדיוק מכאן.') + (nextEpisodePlayable ? '' : ' נפתח מחר.');
   } else if (stars === 3) {
     el.winStarHint.textContent = state.hintUsed ? 'שלושה כוכבים. חותמת "אופטימום" נשמרת לריצה בלי רמז.' : '';
@@ -1639,8 +1822,10 @@ function showSoloWin() {
 
   const world = (isDaily || isSerial) ? null : getCurrentWorld();
   const isLastInWorld = !!world && state.currentLevel >= world.levels.length - 1;
-  el.nextBtn.classList.toggle('hidden', isDaily || (isSerial && !nextEpisodePlayable) || (!!world && isLastInWorld));
-  el.nextBtn.textContent = isSerial ? 'לפרק הבא ←' : 'השלב הבא ←';
+  el.nextBtn.classList.toggle('hidden', (isDaily && !nextDailyTier) || (isSerial && !nextEpisodePlayable) || (!!world && isLastInWorld));
+  el.nextBtn.textContent = isSerial ? 'לפרק הבא ←'
+    : nextDailyTier ? `לדרגה ${nextDailyTier.tierLabel} ${nextDailyTier.tierIcon} ←`
+    : 'השלב הבא ←';
   el.retryBtn.classList.toggle('hidden', (stars === 3 && !isDaily) || isSerial);
   el.retryBtn.textContent = isDaily ? '↻ נסה שוב' : '↻ נסה שוב ל-3★';
   el.shareBtn.classList.toggle('hidden', !isDaily);
@@ -1666,6 +1851,35 @@ function showSoloWin() {
   }
 }
 
+// The next daily tier that has not been solved today (any solve counts),
+// preferring the tiers above the one just played.
+function nextUnsolvedDailyTier(dayEntry) {
+  const bundle = getTodaysDaily();
+  if (!bundle || !state.dailyChallenge) return null;
+  const order = bundle.tiers;
+  const at = order.findIndex(t => t.tier === state.dailyChallenge.tier);
+  const rotated = order.slice(at + 1).concat(order.slice(0, at));
+  return rotated.find(t => !dailyTierStatus(t.tier, dayEntry)) || null;
+}
+function dailyDayComplete(dayEntry) {
+  const bundle = getTodaysDaily();
+  return !!bundle && bundle.tiers.every(t => dailyTierStatus(t.tier, dayEntry));
+}
+
+// Stamp milestone banner on the win screen (every 25 stamps → rank + free hint).
+function renderStampMilestone(before, after) {
+  if (!el.winMilestone) return;
+  const api = getContractApi();
+  const crossed = api ? api.milestonesCrossed(before, after) : 0;
+  if (!crossed) { el.winMilestone.classList.add('hidden'); el.winMilestone.textContent = ''; return; }
+  const rank = api.rankFor(after);
+  el.winMilestone.innerHTML =
+    `◎ <b>${rank.reached * api.STAMP_MILESTONE} חותמות אתגר</b> — תואר חדש: <b>${rank.title || 'מאסטר החותמות'}</b>. ` +
+    `+${crossed} רמז חופשי ששומר על חותמת "אופטימום".`;
+  el.winMilestone.classList.remove('hidden');
+  setTimeout(() => showToast(`◎ פרס חותמות: ${rank.title || ''} · רמז חופשי נוסף`, 3200), 900);
+}
+
 function renderWinContracts(earnedContracts, allContracts) {
   const contractApi = getContractApi();
   if (!contractApi || !el.winContracts) { if (el.winContracts) el.winContracts.innerHTML = ''; return; }
@@ -1685,6 +1899,11 @@ function renderWinContracts(earnedContracts, allContracts) {
 function nextLevel() {
   el.winOverlay.classList.add('hidden');
   if (state.mode === 'serial') { startSerialEpisode(state.serial.season, state.serial.index + 1); return; }
+  if (state.mode === 'daily') {
+    const next = nextUnsolvedDailyTier(getDailyResults()[state.dailyChallenge.key]);
+    if (next) startDailyChallenge(next.tier); else backToSelect();
+    return;
+  }
   startSoloLevel(state.currentWorld, state.currentLevel + 1);
 }
 
@@ -1697,9 +1916,10 @@ function shareDaily() {
   const api = getDailyApi();
   if (!api || !state.dailyChallenge) return;
   const results = getDailyResults();
-  const result = results[state.dailyChallenge.key];
+  const day = results[state.dailyChallenge.key];
+  const result = api.tierResult(day, state.dailyChallenge.tier);
   if (!result) return;
-  const text = api.buildShareText(state.dailyChallenge, result, api.computeStreak(results, state.dailyChallenge.key));
+  const text = api.buildShareText(state.dailyChallenge, result, api.computeStreak(results, state.dailyChallenge.key), day);
   const fallback = () => { showToast('הטקסט מוכן להעתקה:\n' + text, 5000); };
   if (navigator.share) {
     navigator.share({ text }).catch(() => {});
@@ -1725,6 +1945,7 @@ function startTimeAttack() {
   state.mode = 'ta';
   state.taSolved = 0;
   state.taRound = 0;
+  state.taBoards = [];
   state.taTimeLeft = TIME_ATTACK_DURATION_SEC;
   const api = getTaApi();
   state.taRng = api ? api.makeRng((Date.now() ^ (Math.random() * 1e9)) >>> 0) : Math.random;
@@ -1764,10 +1985,17 @@ function updateTATimeDisplay() {
   el.taTime.textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
   el.taTime.classList.toggle('warning', t <= 10);
   el.taSolved.textContent = state.taSolved;
+  if (el.taScore) el.taScore.textContent = currentTAScore().score;
+}
+
+function currentTAScore() {
+  const api = getTaApi();
+  return api ? api.runScore(state.taBoards) : { solved: state.taSolved, score: 0, precision: 0 };
 }
 
 function handleTASolve() {
   state.taSolved++;
+  state.taBoards.push({ moves: state.moveCount, optimalMoves: state.taLevel.optimalMoves });
   state.taTimeLeft += TIME_ATTACK_BONUS_SEC;
   updateTATimeDisplay();
   playSound('home'); haptic('home');
@@ -1784,13 +2012,21 @@ function handleTASolve() {
 function endTimeAttack() {
   stopTATimer();
   const prev = getTABest();
+  const prevScore = getTABestScore();
+  const run = currentTAScore();
   const isNewBest = state.taSolved > prev;
+  const isNewBestScore = run.score > prevScore;
   if (isNewBest) setTABest(state.taSolved);
+  if (isNewBestScore) setTABestScore(run.score);
   el.taResultSolved.textContent = state.taSolved;
+  el.taResultScore.textContent = run.score;
+  el.taResultPrecision.textContent = state.taSolved ? `${Math.round(run.precision * 100)}%` : '—';
   el.taResultNewBest.classList.toggle('hidden', !isNewBest);
+  el.taResultNewBestScore.classList.toggle('hidden', !isNewBestScore);
   el.taResultPrev.textContent = prev || '—';
+  el.taResultPrevScore.textContent = prevScore || '—';
   el.taResultOverlay.classList.remove('hidden');
-  playSound(isNewBest ? 'win' : 'drop');
+  playSound(isNewBest || isNewBestScore ? 'win' : 'drop');
 }
 
 function exitTimeAttack() {
@@ -1862,7 +2098,8 @@ function renderTube(tube, index, kind, capacity) {
       const badge = document.createElement('div');
       badge.className = 'centrifuge-badge';
       badge.textContent = '🌪';
-      badge.title = 'צנטריפוגה: כשהמבחנה מתמלאת היא מתהפכת — התחתון עולה למעלה';
+      badge.title = 'צנטריפוגה: כשהמבחנה מתמלאת היא מתהפכת — התחתון עולה למעלה'
+        + (state.portals.some(p => p.pair[1] === index) ? '. גם כדור מהצינור ממלא אותה' : '');
       badgeStrip.appendChild(badge);
     }
     const lock = tubeLockInfo(index);
@@ -1885,7 +2122,9 @@ function renderTube(tube, index, kind, capacity) {
       const badge = document.createElement('div');
       badge.className = 'key-badge';
       badge.textContent = '🗝';
-      badge.title = 'מבחנת המפתח: כשהיא תגיע למצב שעל תג המנעול, המנעול ייפתח';
+      badge.title = state.centrifuges.includes(index)
+        ? 'מבחנת המפתח היא צנטריפוגה: התג מתאר את הערימה אחרי ההיפוך'
+        : 'מבחנת המפתח: כשהיא תגיע למצב שעל תג המנעול, המנעול ייפתח';
       badgeStrip.appendChild(badge);
     }
     if (isShift) {
@@ -2005,7 +2244,8 @@ function buildRuleChips() {
     push('↔', 'דלתות', 'דלת מעבירה כדור שנכנס אליה אל הדלת התאומה (אותו מספר).');
   }
   if (state.portals.some(p => p.mode !== 'redirect')) {
-    push('⤵', 'צינור תחתי', 'כדור שנכנס לפתח ⤵ מחליק אל תחתית המבחנה התאומה ⤶ — בלי חוקי צבע, אבל הוא נקבר שם מתחת לכל הערימה.');
+    push('⤵', 'צינור תחתי', 'כדור שנכנס לפתח ⤵ מחליק אל תחתית המבחנה התאומה ⤶ — בלי חוקי צבע, אבל הוא נקבר שם מתחת לכל הערימה.'
+      + (state.blenders.length ? ' במבחנת ערבוב הצינור פוגש את הכדור התחתון ומערבב איתו.' : ''));
   }
   if (hasPipes()) {
     push('🔗', state.oneWay.length ? 'צנרת חד-כיוונית' : 'צנרת',
@@ -2013,11 +2253,13 @@ function buildRuleChips() {
       + (state.oneWay.length ? ' חץ על צינור = כיוון אחד בלבד.' : ''));
   }
   if (state.centrifuges.length > 0) {
-    push('🌪', 'צנטריפוגה', 'ברגע שמבחנת צנטריפוגה מתמלאת היא מתהפכת: הכדור התחתון עולה למעלה. ממלאים כדי לחפור.');
+    push('🌪', 'צנטריפוגה', 'ברגע שמבחנת צנטריפוגה מתמלאת היא מתהפכת: הכדור התחתון עולה למעלה. ממלאים כדי לחפור.'
+      + (state.portals.length ? ' גם כדור שמגיע מצינור תחתי ⤵ ממלא אותה — ואחרי ההיפוך הוא יעלה למעלה.' : ''));
   }
   const hasBudget = state.tubes.some(t => t.some(b => budgetOf(b) !== Infinity));
   if (hasBudget) {
-    push('⌛', 'כדור מתקשה', 'המספר על הכדור הוא כמה פעמים עוד מותר להזיז אותו. באפס הוא מתקשה במקומו לתמיד — הכן את הבית לפני שנוגעים בו.');
+    push('⌛', 'כדור מתקשה', 'המספר על הכדור הוא כמה פעמים עוד מותר להזיז אותו. באפס הוא מתקשה במקומו לתמיד — הכן את הבית לפני שנוגעים בו.'
+      + (state.blenders.length ? ' רק ערבוב במבחנת ⚗️ יכול לבלוע כדור שהתקשה: כדור שמתקשה בתחתית המעבדה מחכה לבן-הזוג שלו.' : ''));
   }
   const hasJoker = state.tubes.concat(state.target).some(t => t.some(b => colorOf(b) === 'J'));
   if (hasJoker) {
@@ -2115,7 +2357,9 @@ function renderHeader() {
     meta = getLevelMeta(L.rungs[L.index].worldId, L.rungs[L.index].levelIndex);
   } else {
     const world = isDaily ? getWorld(state.dailyChallenge.worldId) : getCurrentWorld();
-    el.worldName.textContent = isDaily ? `🗓 ניסוי יומי · ${world.icon} ${world.name}` : `${world.icon} ${world.name}`;
+    el.worldName.textContent = isDaily
+      ? `🗓 ניסוי יומי · ${state.dailyChallenge.tierIcon} ${state.dailyChallenge.tierLabel} · ${world.icon} ${world.name}`
+      : `${world.icon} ${world.name}`;
     el.levelNumber.textContent = state.currentLevel + 1;
     meta = getLevelMeta(isDaily ? state.dailyChallenge.worldId : state.currentWorld, state.currentLevel);
   }
@@ -2143,13 +2387,24 @@ function renderGame(suppressOpenAnim = false) {
   el.gameTubes.innerHTML = '';
   el.gameTubes.style.setProperty('--per-row', tubesPerRow(state.tubes.length));
   el.gameTubes.style.setProperty('--tube-count', state.tubes.length);
+  // Two-row boards get a compact phone layout so the chips and the footer stay on screen.
+  document.body.classList.toggle('rows-2', tubesPerRow(state.tubes.length) < state.tubes.length);
   state.tubes.forEach((tube, i) => el.gameTubes.appendChild(renderTube(tube, i, 'game', state.capacities[i])));
   renderPipes();
   el.undoBtn.disabled = state.moveHistory.length === 0 || isDailyNoUndo() || state.mode === 'ladder' || state.replaying;
   el.undoCount.textContent = state.undoCount ? `· ${state.undoCount}` : '';
   el.hintBtn.disabled = state.mode === 'ta' || state.mode === 'ladder' || state.replaying;
   el.hintBtn.classList.toggle('used', state.hintUsed);
+  renderHintButton();
   el.resetBtn.disabled = state.replaying;
+}
+
+// The hint button advertises unspent free-hint tokens (stamp rewards) until
+// this run has been charged for a hint.
+function renderHintButton() {
+  const freeHints = (state.mode === 'solo' || state.mode === 'daily') && !state.hintFree && !state.hintUsed ? getFreeHints() : 0;
+  el.hintBtn.innerHTML = freeHints > 0 ? `💡 רמז <span class="btn-count" title="רמזים חופשיים">· ${freeHints}</span>` : '💡 רמז';
+  el.hintBtn.title = freeHints > 0 ? `${freeHints} רמזים חופשיים מפרס החותמות — לא מוותרים על חותמת "אופטימום"` : '';
 }
 
 function isDailyNoUndo() {
@@ -2220,7 +2475,9 @@ el.backToSelectBtn.addEventListener('click', backToSelect);
 el.completeBackBtn.addEventListener('click', backToSelect);
 
 el.timeAttackBtn.addEventListener('click', startTimeAttack);
-el.dailyBtn.addEventListener('click', startDailyChallenge);
+el.dailyBtn.addEventListener('click', openDailyChooser);
+el.dailyCloseBtn.addEventListener('click', closeDailyChooser);
+el.dailyOverlay.addEventListener('click', (e) => { if (e.target === el.dailyOverlay) closeDailyChooser(); });
 el.taResultBackBtn.addEventListener('click', exitTimeAttack);
 el.taResultRetryBtn.addEventListener('click', retryTimeAttack);
 el.serialBtn.addEventListener('click', openSerial);
@@ -2249,6 +2506,8 @@ el.resetProgressBtn.addEventListener('click', () => {
   saveProgress();
   saveDailyResults({});
   setTABest(0);
+  setTABestScore(0);
+  setFreeHintsUsed(0);
   try { localStorage.removeItem(LAST_KEY); } catch (e) {}
   state.expandedWorld = null;
   closeSettings();

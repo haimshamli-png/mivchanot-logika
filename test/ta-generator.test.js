@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { makeRng, bandFor, generateLevel, nextLevel, solve } = require('../ta-generator.js');
+const { makeRng, bandFor, generateLevel, nextLevel, solve, boardScore, runScore } = require('../ta-generator.js');
 
 // Solver sanity: a known World 1 board.
 assert.strictEqual(
@@ -40,5 +40,19 @@ for (let round = 0; round < 16; round++) {
 // Bands escalate with the round.
 assert(bandFor(0).colors < bandFor(14).colors, 'later rounds use more colours');
 assert(nextLevel(makeRng(7), 0), 'nextLevel always returns a board');
+
+// Accuracy scoring: up to 100 per board, scaled by optimal / moves.
+assert.strictEqual(boardScore(6, 6), 100, 'an optimal solve is worth 100');
+assert.strictEqual(boardScore(8, 6), 75, 'two extra moves on a 6-move board is 75');
+assert.strictEqual(boardScore(4, 6), 100, 'beating the declared optimum cannot exceed 100');
+assert.strictEqual(boardScore(0, 6), 0, 'no moves means no points');
+assert.deepStrictEqual(runScore([]), { solved: 0, score: 0, precision: 0 }, 'an empty run scores zero');
+const run = runScore([{ moves: 6, optimalMoves: 6 }, { moves: 8, optimalMoves: 6 }, { moves: 5, optimalMoves: 4 }]);
+assert.strictEqual(run.solved, 3, 'runScore counts boards');
+assert.strictEqual(run.score, 100 + 75 + 80, 'runScore sums board points');
+assert.strictEqual(run.precision, run.score / 300, 'precision is points over the maximum');
+assert(runScore([{ moves: 6, optimalMoves: 6 }, { moves: 6, optimalMoves: 6 }]).score
+  > runScore([{ moves: 12, optimalMoves: 6 }, { moves: 12, optimalMoves: 6 }]).score,
+  'sloppy pouring costs points at the same board count');
 
 console.log('time attack generator tests passed');

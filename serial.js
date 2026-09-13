@@ -533,6 +533,100 @@
           }
         }
       ]
+    },
+    {
+      id: 'season-2',
+      title: 'ההזמנה הסגולה',
+      // Season 2 — the client wants purple. New element each day: joker,
+      // centrifuge, blue-only tube, blender (purple = red + blue), hardening
+      // balls, and a sealed shelf with a final delivery. Tube 6 (the
+      // centrifuge) arrives on day 3, tube 7 (the crate) on day 7. All
+      // optimalMoves are BFS-verified (scripts/annotate-levels.js).
+      episodes: [
+        {
+          title: 'המכתב',
+          teaser: 'מחר מגיע ג׳וקר: כדור שמתאים לכל צבע — והלקוח רוצה אותו בתחתית, מתחת לכחולים.',
+          level: {
+            capacities: [4, 4, 4, 4, 4],
+            initial: [['R','B'], ['B','R','Y'], ['Y','Y'], [], ['R','B']],
+            target:  [['R','R','R'], ['B','B','B'], ['Y','Y','Y'], [], []],
+            optimalMoves: 6
+          }
+        },
+        {
+          title: 'הג׳וקר',
+          teaser: 'בלילה מתקינים צנטריפוגה: מבחנה שמתהפכת ברגע שהיא מתמלאת. הכחול הרביעי מגיע קבור בתחתיתה.',
+          level: {
+            capacities: [4, 4, 4, 4, 4, 4],
+            initial: [['R','R','R'], ['B','B','B'], ['Y','Y','Y'], [], [], ['J']],
+            target:  [[], ['J','B','B','B'], ['Y','Y','Y'], ['R','R','R'], [], []],
+            optimalMoves: 10
+          }
+        },
+        {
+          title: 'הצנטריפוגה',
+          teaser: 'מחר אחת המבחנות נצבעת כחול: רק כחול (או ג׳וקר) ייכנס אליה — וכל השאר יצטרכו לחפש מקום אחר.',
+          level: {
+            capacities: [4, 4, 4, 4, 4, 4, 4],
+            centrifuges: [6],
+            initial: [[], ['J','B','B','B'], ['Y','Y','Y'], ['R','R','R'], [], [], ['B','R','R']],
+            target:  [['B','B','B','B'], ['J','Y','Y','Y'], [], ['R','R'], [], [], ['R','R','R']],
+            optimalMoves: 8
+          }
+        },
+        {
+          title: 'המבחנה הכחולה',
+          teaser: 'הלקוח דורש סגול. במעבדה אין סגול, אבל מחר מגיע מערבל: אדום וכחול שנפגשים בו הופכים לסגול.',
+          level: {
+            capacities: [4, 4, 4, 4, 4, 4, 4],
+            centrifuges: [6],
+            tubeColors: [null, null, null, null, 'B', null, null],
+            initial: [['B','B','B','B'], ['J','Y','Y','Y'], [], ['R','R'], [], [], ['R','R','R']],
+            target:  [['Y','Y','Y'], [], ['R','R'], ['R','R','R'], ['J','B','B','B'], [], ['B']],
+            optimalMoves: 14
+          }
+        },
+        {
+          title: 'סגול ראשון',
+          teaser: 'שני כדורים במעבדה מתחילים להתקשות: לכל אחד נשאר מהלך אחד בלבד. הכן את המערבל לפני שנוגעים בהם.',
+          level: {
+            capacities: [4, 4, 4, 4, 4, 4, 4],
+            centrifuges: [6],
+            tubeColors: [null, null, null, null, 'B', null, null],
+            blenders: [5],
+            initial: [['Y','Y','Y'], [], ['R','R'], ['R','R','R'], ['J','B','B','B'], [], ['B']],
+            target:  [['P','P'], ['Y','Y','Y'], [], ['R','R','R'], ['J','B','B'], [], []],
+            optimalMoves: 9
+          }
+        },
+        {
+          title: 'כדורים מתקשים',
+          teaser: 'מחר מגיע המשלוח האחרון, ומדף הסגול נחתם עד ששני סגולים חדשים יעמדו במקומם. הג׳וקר נכנס אחרון.',
+          level: {
+            capacities: [4, 4, 4, 4, 4, 4, 4],
+            centrifuges: [6],
+            tubeColors: [null, null, null, null, 'B', null, null],
+            blenders: [5],
+            initial: [['P','P'], ['Y','Y','Y'], [], ['R','R','R1'], ['J','B','B1'], [], []],
+            target:  [['Y','Y','Y'], ['R','R'], [], ['J','B'], [], [], ['P','P','P']],
+            optimalMoves: 13
+          }
+        },
+        {
+          title: 'המשלוח האחרון',
+          teaser: 'העונה הבאה: הלקוח מבקש משהו שאף מעבדה לא ייצרה עדיין — ירוק מתוך צהוב.',
+          level: {
+            capacities: [4, 4, 4, 4, 4, 4, 4, 4],
+            centrifuges: [6],
+            tubeColors: [null, null, null, null, 'B', null, null, null],
+            blenders: [5],
+            locks: [{ tubeIndex: 6, until: { tube: 0 } }],
+            initial: [['Y','Y','Y'], ['R','R'], [], ['J','B1'], [], [], ['P','P','P'], ['B','R']],
+            target:  [['P','P'], ['R'], [], [], [], [], ['J','P','P','P'], ['Y','Y','Y']],
+            optimalMoves: 10
+          }
+        }
+      ]
     }
   ];
 

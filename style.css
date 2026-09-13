@@ -369,6 +369,9 @@ button:focus-visible, .level-card:focus-visible, .world-head:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+/* stamp rank (reward every 25 stamps) */
+.stamp-rank { font-family: var(--font-ui); font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
 /* continue card */
 .continue-card {
   display: flex;
@@ -1223,6 +1226,43 @@ body[data-theme="modern"] .danger-row .btn-tertiary { color: #ff7a59; border-col
 .switch input:checked + .slider { background: var(--btn-primary-bg); }
 .switch input:checked + .slider::before { transform: translateX(-20px); }
 
+/* ----- DAILY TIERS ----- */
+.daily-tiers { display: grid; gap: 8px; margin: 10px 0 4px; text-align: right; }
+.daily-tier {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  color: var(--text-color);
+  cursor: pointer;
+  text-align: right;
+  font-family: var(--font-ui);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.daily-tier:hover { transform: translateY(-1px); border-color: var(--text-accent); }
+.daily-tier.done { opacity: 0.8; }
+.daily-tier-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.daily-tier-name { font-weight: 700; font-size: 15px; }
+.daily-tier-level { font-size: 13px; }
+.daily-tier-status { font-size: 12px; color: var(--text-muted); }
+.daily-tier.tier-easy { border-inline-start: 4px solid #4caf50; }
+.daily-tier.tier-medium { border-inline-start: 4px solid #e0b02a; }
+.daily-tier.tier-hard { border-inline-start: 4px solid #e0442a; }
+.daily-rule { font-family: var(--font-ui); font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; line-height: 1.4; }
+.win-milestone {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--gold, #c8841a);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 6px 0;
+  line-height: 1.45;
+}
+
 /* ----- SERIAL + LADDER ----- */
 body[data-theme="modern"] .serial-card { background: linear-gradient(135deg, rgba(155, 92, 255, 0.1), rgba(0, 213, 255, 0.05)), var(--panel-bg); }
 body[data-theme="modern"] .ladder-card { background: linear-gradient(135deg, rgba(255, 231, 76, 0.08), rgba(0, 245, 160, 0.06)), var(--panel-bg); }
@@ -1400,6 +1440,39 @@ body.reduce-anim .quick-flash { animation: none; opacity: 0; }
              max(10px, var(--safe-area-inset-right, env(safe-area-inset-right, 0px)))
              max(10px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))
              max(10px, var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));
+  }
+}
+/* Two-row boards on phones: everything (target, board, chips, footer) has to
+   fit one screen height, so tubes and the target card shrink a notch and the
+   rule chips become a single scrollable row. */
+@media (max-width: 480px) {
+  body.rows-2.in-game .screen { gap: 10px; }
+  body.rows-2 #target-section { padding: 6px 10px 8px; }
+  body.rows-2 .target-label { margin-bottom: 4px; }
+  body.rows-2 .tube.target-tube { height: calc(var(--cap, 4) * 19px + 12px); width: 26px; }
+  body.rows-2 .target-tube .ball { width: 16px; height: 16px; }
+  body.rows-2 .tube.game { height: calc(var(--cap, 4) * 42px + 28px); padding: 4px; }
+  body.rows-2 .tube.game .ball { width: 38px; height: 38px; }
+  body.rows-2 .tubes-container.game { row-gap: 20px; }
+  body.rows-2 .rule-chips {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 2px 2px 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  body.rows-2 .rule-chips::-webkit-scrollbar { display: none; }
+  body.rows-2 .rule-chip { flex: 0 0 auto; }
+  body.in-game footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    padding: 8px 0 max(4px, env(safe-area-inset-bottom, 0px));
+    margin: 0 -10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    background: linear-gradient(to top, var(--bg-base) 75%, transparent);
   }
 }
 @media (max-width: 360px) {

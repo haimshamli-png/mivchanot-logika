@@ -112,5 +112,23 @@
     return generateLevel(rng, bandFor(round)) || FALLBACK[round % FALLBACK.length];
   }
 
-  return { makeRng, bandFor, generateLevel, nextLevel, solve };
+  // Accuracy scoring. Every solved board is worth up to 100 points, scaled by
+  // how close the solve was to the optimum (optimal / moves). Nine boards at
+  // the optimum score 900; nine sloppy boards at 80% accuracy score 720 — so
+  // speed still matters (more boards) but wild pouring costs points.
+  const BOARD_POINTS = 100;
+
+  function boardScore(moves, optimalMoves) {
+    if (!optimalMoves || !moves) return 0;
+    return Math.round(BOARD_POINTS * Math.min(1, optimalMoves / Math.max(moves, optimalMoves)));
+  }
+
+  function runScore(boards) {
+    const solved = boards.length;
+    const score = boards.reduce((sum, b) => sum + boardScore(b.moves, b.optimalMoves), 0);
+    const precision = solved ? score / (solved * BOARD_POINTS) : 0;
+    return { solved, score, precision };
+  }
+
+  return { makeRng, bandFor, generateLevel, nextLevel, solve, boardScore, runScore, BOARD_POINTS };
 });
