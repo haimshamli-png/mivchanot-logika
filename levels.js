@@ -790,8 +790,193 @@ const WORLDS = [
     ]
   },
   {
-    id: 11,
+    id: 12,
     order: 7,
+    name: 'המעבדה המצונרת',
+    icon: '🔗',
+    description: 'צנרת: שופכים רק דרך צינור שמצויר בין המבחנות. כדור שצריך לחצות שתי מבחנות חייב לנחות באמצע — אבני דריכה.',
+    unlockStars: 110,
+    // Each level declares the plumbing:
+    //   pipes:  [[a, b], ...]   undirected pipes — a ball may be poured from a
+    //                           tube only into a tube connected to it by a pipe
+    //   oneWay: [[from, to]]    directed pipes (a valve in the pipe)
+    // Everything else is the normal game. A ball that must cross two tubes has
+    // to LAND in the middle one, so the middle tube must be empty or carry a
+    // matching colour on top: stepping stones. A shift tube at a junction
+    // converts everything that crosses it. All optimalMoves are BFS-verified.
+    levels: [
+      // 1 — מבוא לצנרת: אין צינור ישיר ליעד, ולכן הכדור חייב לנחות במבחנה האמצעית
+      // ולהמשיך ממנה — כל מהלך הוא מסלול, לא קפיצה.
+      { capacities: [4,4,4], optimalMoves: 2,
+        initial: [['B'],[],['B']],
+        target:  [[],[],['B','B']],
+        pipes: [[0,1], [1,2]] },
+      // 2 — מזלג: מבחנה 1 היא הצומת היחיד בין שלושת הקצוות. הירוק חייב לפנות את
+      // הדרך דרך הצומת לפני שהאדום יכול לחצות אותו.
+      { capacities: [4,4,4,4], optimalMoves: 4,
+        initial: [['R'],[],['R','G'],['G','G']],
+        target:  [[],[],['R','R'],['G','G','G']],
+        pipes: [[0,1], [1,2], [1,3]] },
+      // 3 — אבן דריכה ראשונה: האדום הרחוק חוצה שתי מבחנות ויכול לנחות באמצע רק כל
+      // עוד האדום השני עדיין יושב שם למעלה — לכן מזיזים קודם את מי שנראה מסודר.
+      { capacities: [4,4,4,4], optimalMoves: 8,
+        initial: [[],['G','G','R'],[],['R']],
+        target:  [['R','R'],[],[],['G','G']],
+        pipes: [[0,1], [1,2], [2,3]] },
+      // 4 — צומת שהוא גם בית: הירוקים שייכים למבחנת הצומת, אבל כל עוד הם שם אף צבע
+      // אחר לא עובר. מפרקים מבחנה גמורה, מעבירים את כולם, ובונים אותה מחדש בסוף.
+      { capacities: [4,4,4,4,4], optimalMoves: 9,
+        initial: [['R'],['R','B','G'],['G'],[],['B']],
+        target:  [['R','R'],[],['G','G'],[],['B','B']],
+        pipes: [[0,2], [1,2], [2,3], [2,4]] },
+      // 5 — מסדרון של שלושה צבעים: כל חצייה נוחתת על צבע תואם, והמאגר בקצה מתמלא
+      // ומתרוקן בסדר קבוע. מי שמפנה את המסדרון מוקדם מדי חוסם את עצמו.
+      { capacities: [4,4,4,4,4], optimalMoves: 14,
+        initial: [['R','R','Y'],['R','Y','B'],['Y','B','B'],[],[]],
+        target:  [['R','R','R'],['Y','Y','Y'],['B','B','B'],[],[]],
+        pipes: [[0,1], [1,2], [2,3], [3,4]] },
+      // 6 — טבעת עם קטע חד-כיווני: הבית של האדום נמצא ממש מתחתיו אבל החץ מצביע
+      // למעלה, ולכן הוא מקיף את כל הטבעת ונוחת על אבני דריכה אדומות בדרך. רק אחרי
+      // שהוא עבר אפשר לפרק את האבנים.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 12,
+        initial: [['G','G','R'],[],['Y','B','R'],['R'],[],['B','B','R']],
+        target:  [['G','G'],['Y'],[],['R','R','R','R'],[],['B','B','B']],
+        pipes: [[0,1], [1,2], [2,5], [5,4], [4,3]],
+        oneWay: [[3,0]] },
+      // 7 — מבחנת שיפט בצומת הטבעת: כל מה שחוצה אותה משנה צבע. האדומים והכחול
+      // חייבים לעבור דרכה (R→G, B→Y) והצהובים חייבים לעקוף אותה דרך הקשת — הטבעת
+      // נותנת לכל כדור בחירה של מסלול.
+      { capacities: [4,4,4,4,4], optimalMoves: 15,
+        initial: [['B','R','R'],[],[],[],['R','Y','Y']],
+        target:  [['Y','Y','Y'],[],[],['G','G','G'],[]],
+        pipes: [[0,1], [1,2], [2,3], [3,4], [4,0]],
+        shifts: [2] },
+      // 8 — מעבדת ערבוב בצומת: המבלנדר יושב במפגש של שלושה צינורות, וכל כדור שחוצה
+      // אותו עלול להגיב עם מה שמונח בו. הירוק חייב לעקוף דרך הטבעת ולהיכנס רק
+      // כשאין אדום במעבדה.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 17,
+        initial: [['Y','R','B'],[],[],['Y','B','G','R'],[],[]],
+        target:  [[],['P','P'],['Y','Y'],[],[],['G']],
+        pipes: [[0,1], [1,2], [2,5], [5,4], [4,3], [3,0], [1,4]],
+        blenders: [4] },
+      // 9 — מנעול-תנאי על הגשר: קודם מסיימים את מבחנת המפתח בצד אחד, ורק אז מבחנת
+      // הגשר נפתחת. מעבר לגשר הקטע החד-כיווני מכריח סיבוב מלא, והצהוב שנחנה בצד
+      // המפתח חוזר אחרון.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 17,
+        initial: [['B','B','Y'],['B'],[],['G','Y'],['Y','G'],['G']],
+        target:  [['B','B','B'],[],[],['Y','Y','Y'],['G','G','G'],[]],
+        pipes: [[0,1], [1,2], [0,2], [2,5], [4,3], [3,5]],
+        oneWay: [[5,4]],
+        locks: [{ tubeIndex: 5, until: { tube: 0 } }] },
+      // 10 — בוס: מבלנדר בצומת, צינור חד-כיווני שלא מחזיר כדורים למקור, ומדף שנבנה
+      // רק מלמטה דרך השאט. את הירוק העליון מניחים ישירות, ואת הסגול והירוק השני
+      // מייצרים אחר כך ומחליקים מתחתיו — בסדר ההפוך למה שרואים ביעד.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 14,
+        initial: [[],[],[],[],['Y','B','G'],['R','R','R','B']],
+        target:  [['G','P','G'],[],['R','R'],[],[],[]],
+        pipes: [[0,1], [2,5], [5,4], [4,3], [1,4]],
+        oneWay: [[2,1]],
+        portals: [{ pair: [3, 0], mode: 'bottom' }],
+        blenders: [1] }
+    ]
+  },
+
+  {
+    id: 13,
+    order: 8,
+    name: 'הצנטריפוגה',
+    icon: '🌪',
+    description: 'צנטריפוגה: מבחנה שמתהפכת ברגע שהיא מתמלאת — התחתון עולה למעלה. ממלאים כדי לחפור, והג\'וקר הוא מפתח ההיפוך.',
+    unlockStars: 126,
+    // Each level may declare:
+    //   centrifuges: [tubeIndex, ...]
+    // The moment a listed tube becomes full (after a ball lands in it from
+    // the top or from a chute) its contents reverse: the bottom ball rises to
+    // the top. Blends do not trigger a flip. Instead of removing three balls
+    // to reach the bottom, add one and let the tube spin — but every flip
+    // buries whatever was on top. All optimalMoves are BFS-verified.
+    levels: [
+      // 1 — מבוא — "ממלאים כדי לחפור": הצנטריפוגה (קיבולת 3) מחזיקה ירוק מתחת
+      // לאדום. האדום השני ממלא אותה, היא מתהפכת, והירוק שהיה בתחתית צף למעלה — שני
+      // מהלכים בלבד.
+      { capacities: [3,4,4], optimalMoves: 2,
+        initial: [['G','R'],['R'],['G','G']],
+        target:  [['R','R'],[],['G','G','G']],
+        centrifuges: [0] },
+      // 2 — הג'וקר הוא מפתח אוניברסלי: הוא נוחת על כל צבע וממלא את הצנטריפוגה.
+      // התאום האדום נראה אבל קבור מתחת לכחול ולג'וקר, אז רק הג'וקר מפעיל את ההיפוך
+      // — ונקבר בתחתית, ששם ביתו.
+      { capacities: [3,4,4,4], optimalMoves: 3,
+        initial: [['G','R'],['R','B','J'],['G','G'],['B']],
+        target:  [['J','R'],['R'],['G','G','G'],['B','B']],
+        centrifuges: [0] },
+      // 3 — ההיפוך קובר את המפתח בתחתית. אחרי שהירוק צף הביתה, התאום האדום ממלא
+      // שוב את הצנטריפוגה, היפוך שני מציף את הג'וקר, והוא ממשיך למבחנה שהתפנתה.
+      { capacities: [3,4,4,4], optimalMoves: 5,
+        initial: [['G','R'],['B','B','J'],['G','G'],['R','B']],
+        target:  [['R','R'],['B','B','B'],['G','G','G'],['J']],
+        centrifuges: [0] },
+      // 4 — קריאה הפוכה: את המחסנית בונים במהופך — הכדור שצריך לשבת בתחתית נכנס
+      // אחרון. שבעה מהלכים שנראים כמו אפס התקדמות, עד שההיפוך האחרון מסדר הכול.
+      { capacities: [5,4,4,4], optimalMoves: 7,
+        initial: [[],['G','B','B'],['J','G'],[]],
+        target:  [['B','B','J','G','G'],[],[],[]],
+        centrifuges: [0] },
+      // 5 — נקודת אמצע — שרשרת מפתחות בין שתי צנטריפוגות: הג'וקר הופך את A, הירוק
+      // שצף ממנה הופך את B, והאדום שצף מ-B משלים את A מעל הג'וקר. נתיב אופטימלי
+      // יחיד.
+      { capacities: [4,3,4,4], optimalMoves: 5,
+        initial: [['B','G','R'],['R','G'],['J','B'],['B']],
+        target:  [['J','R','R'],['G','G'],[],['B','B','B']],
+        centrifuges: [0,1] },
+      // 6 — צנטריפוגה עם חיץ זעיר (קיבולת 2): אין מקום לחפור, אז הירוק השלישי ממלא
+      // את הצנטריפוגה ומעלה את האדום. בלי ההיפוך הפתרון ארוך בחמישה מהלכים, והחיץ
+      // הקטן מספיק בדיוק לכדור אחד.
+      { capacities: [4,4,4,4,2], optimalMoves: 11,
+        initial: [['R','G','G'],['R','Y','B','Y'],['R','G','B','B'],[],[]],
+        target:  [['G','G','G'],['R','R','R'],['B','B','B'],['Y','Y'],[]],
+        centrifuges: [0] },
+      // 7 — ייצור מפתח: אין ירוק פנוי בלוח, אז אדום עובר במבחנת השיפט והופך לירוק
+      // שממלא את הצנטריפוגה. השיפט הוא החיץ היחיד — כל חניה בו משנה צבע, ולכן גם
+      // הכחול שצף מההיפוך יוצא דרכו.
+      { capacities: [4,4,4,4,4], optimalMoves: 13,
+        initial: [['B','G','G'],[],['R'],['R','Y'],['B','Y','R','B']],
+        target:  [['G','G','G'],[],['B','B','B'],['R','R'],['Y','Y']],
+        centrifuges: [0],
+        shifts: [1] },
+      // 8 — המפתח נשאר במנעול: החיץ נפתח רק כשהצנטריפוגה מציגה [R,R,J] — מחסנית
+      // שנוצרת אך ורק מהיפוך של [J,R,R], כלומר ג'וקר קודם ואז חילוץ בתאום. התאום
+      // האדום זמין מההתחלה — מי שפותח איתו לא יגיע למחסנית המפתח. נתיב יחיד.
+      { capacities: [3,4,4,4,4], optimalMoves: 13,
+        initial: [['G','R'],['G','Y','B','B'],['G','J'],['Y','B','Y','R'],[]],
+        target:  [['R','R','J'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]],
+        centrifuges: [0],
+        locks: [{ tubeIndex: 4, until: { tube: 0, equals: ['R','R','J'] } }] },
+      // 9 — צינור תחתי לתוך הצנטריפוגה: מה שנדחף מלמטה עולה לראש כשהיא מתהפכת.
+      // כחול שנדחף מהצינור ואדום שנוחת מלמעלה משמשים "דלק היפוך" שמסדר מחדש את
+      // השכבות, ורק אז נבנה R,G,R,G מלמטה וההיפוך האחרון קורא אותו נכון. נתיב
+      // יחיד.
+      { capacities: [4,4,4,4,2], optimalMoves: 17,
+        initial: [['Y','G'],[],['G','B'],['R','B','R','B'],['Y']],
+        target:  [['R','G','R','G'],[],['B','B','B'],[],['Y','Y']],
+        centrifuges: [0],
+        portals: [{ pair: [1, 0], mode: 'bottom' }] },
+      // 10 — בוס — מדף התוצרים: שחור וסגול נכנסים מהצינור מתחת לירוק, הצהוב העודף
+      // ממלא ומהפך את המדף, והג'וקר נוחת אחרון וגורם להיפוך השני שמסדר [J,P,K,G].
+      // מנעול-תנאי, בלנדר, צינור וצנטריפוגה בלוח אחד; נתיב יחיד.
+      { capacities: [4,4,4,4,4,2], optimalMoves: 12,
+        initial: [['G'],[],['Y'],['R','Y','B','R'],['B','J','B'],['B']],
+        target:  [['J','P','K','G'],[],[],['Y'],[],['B','B']],
+        centrifuges: [0],
+        portals: [{ pair: [1, 0], mode: 'bottom' }],
+        blenders: [2],
+        locks: [{ tubeIndex: 1, until: { tube: 5, equals: ['B','B'] } }] }
+    ]
+  },
+
+  {
+    id: 11,
+    order: 9,
     name: 'מסלול מומחה',
     icon: '🏅',
     description: 'שלבי מאסטר מכל המכניקות, בסדר קושי עולה. נפתח לפי חותמות אתגר, לא לפי כוכבים.',
@@ -808,14 +993,16 @@ const WORLDS = [
         target:  [[],[],['B'],['B'],['G'],['G']],
         shifts: [2,3,4,5],
         valves: [{ tubeIndex: 2, mode: 'flip', starts: 'in' }, { tubeIndex: 3, mode: 'flip', starts: 'in' }] },
-      // 2 — four colours, all tubes short (cap 3): no real buffer anywhere.
+      // 2 — H1 — הכן, ואז הכה: שני כדורים מתקשים (G1 מעל R1) חוסמים יחד את מבחנה 3.
+      // הירוק חייב להכות ראשון לתוך [G,G] שכבר מוכן, ורק אז נחשף האדום — וביתו
+      // [R,R] חייב כבר לחכות לו. עם חיץ של כדור אחד בלבד המסלול יחיד.
+      { capacities: [4,4,4,4,1], optimalMoves: 12,
+        initial: [['B','Y','R'],['G','R','G'],['B','B','Y'],['Y','R1','G1'],[]],
+        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]] },
+      // 3 — four colours, all tubes short (cap 3): no real buffer anywhere.
       { capacities: [3,3,3,3,3], optimalMoves: 12,
         initial: [['R','G','B'],['G','Y','R'],['B','Y'],['Y','R','G'],['B']],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]] },
-      // 3 — one tall tube and four short ones.
-      { capacities: [4,3,3,3,3], optimalMoves: 19,
-        initial: [['R','G','B','Y'],['B','Y','R'],['G','R','B'],['Y','G','R'],[]],
-        target:  [['R','R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]] },
       // 4 — five conversions with three flipping shift valves; finished
       // products compete with half-converted intermediates.
       { capacities: [5,4,4,4,4,4,4], optimalMoves: 11,
@@ -827,7 +1014,36 @@ const WORLDS = [
           { tubeIndex: 3, mode: 'flip', starts: 'in' },
           { tubeIndex: 4, mode: 'flip', starts: 'in' }
         ] },
-      // 5 MONSTER — cross-mechanic: staggered deep locks + a small
+      // 5 — one tall tube and four short ones.
+      { capacities: [4,3,3,3,3], optimalMoves: 19,
+        initial: [['R','G','B','Y'],['B','Y','R'],['G','R','B'],['Y','G','R'],[]],
+        target:  [['R','R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]] },
+      // 6 — H2 — שלושה אדומים צריכים להפוך לירוקים דרך מבחנת השיפט (4). לשני ה-R2 יש
+      // בדיוק שני מהלכים: כניסה אחת לשיפט ויציאה ישירה הביתה, בלי חנייה — רק
+      // האדום הרגיל חופשי להמתין. בית הירוקים חייב להתפנות לפני שהראשון יוצא
+      // מהשיפט.
+      { capacities: [4,4,4,2,4], optimalMoves: 16,
+        initial: [['Y','B','R2','Y'],['Y','Y','B','R2'],['B','R','B','G'],[],[]],
+        target:  [['B','B','B','B'],['Y','Y','Y','Y'],['G','G','G','G'],[],[]],
+        shifts: [4] },
+      // 7 — M1 — מדף (5) שהוא צנטריפוגה ומוזן מצינור תחתי (4): הצינור נפתח רק כששני
+      // אדומים בבית, וההיפוך ברגע המילוי מבטל את ההיפוך של הצינור — מאכילים
+      // R,G,B,Y בסדר הזה ורואים אותו כפי שהוא. בדרך המדף מתמלא ומתהפך פעם אחת
+      // כחיץ. מסלול יחיד.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 15,
+        initial: [['B','R','G'],['B','G','B'],['G','R','R'],['Y','Y','Y'],[],[]],
+        target:  [['R','R'],['G','G'],['B','B'],['Y','Y'],[],['R','G','B','Y']],
+        centrifuges: [5],
+        portals: [{ pair: [4, 5], mode: 'bottom' }],
+        locks: [{ tubeIndex: 4, until: { tube: 0, equals: ['R','R'] } }] },
+      // 8 — H3 — שני כחולים מתקשים הם מרכיבי המעבדה (4): כל אחד נכנס פעם אחת בלבד —
+      // ישר על צהוב שכבר עומד למעלה, או כזרע שמתקשה בתחתית ומחכה שהצהוב יגיע
+      // אליו. שני שחורים, שני ירוקים וסגול בלי כדור עודף — מסלול יחיד.
+      { capacities: [4,4,4,4,4], optimalMoves: 17,
+        initial: [['R','Y','B','B'],['R','B1','B','B1'],['Y','Y','Y','R'],[],[]],
+        target:  [[],['P'],['G','G'],['K','K'],[]],
+        blenders: [4] },
+      // 9 MONSTER — cross-mechanic: staggered deep locks + a small
       // (cap 2) buffer. tube0 is frozen for 11 moves and tube1 for 6, so the
       // opening is a scheduled staging problem, not just a long sort. The cap-2
       // tube4 cannot absorb a 3-stack, which keeps the final route tight.
@@ -835,7 +1051,25 @@ const WORLDS = [
         initial: [['Y','R','B','G'],['G','B','R','Y'],['B','G','Y','R'],[],[]],
         target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[]],
         locks:   [{ tubeIndex: 0, unlockAt: 11 }, { tubeIndex: 1, unlockAt: 6 }] },
-      // 6 — six conversions, wider routing, and three flip valves that
+      // 10 — M2 — צנרת: ארבע מבחנות הבית אינן מחוברות זו לזו — כל כדור עובר דרך אחד
+      // משני ממסרים (4,5). ממסר 5 נפתח רק כששני ירוקים עומדים בממסר 4, והאדומים
+      // שחנו בו נכלאים עד שמרכיבים את המפתח מחדש — הירוקים נשלפים בחזרה מהבית.
+      // 13 מהלכים אחורה מתוך 26.
+      { capacities: [4,4,4,4,4,4], optimalMoves: 26,
+        initial: [['B','R','B'],['R','G','G'],['B','G','Y'],['Y','Y','R'],[],[]],
+        target:  [['R','R','R'],['G','G','G'],['B','B','B'],['Y','Y','Y'],[],[]],
+        pipes: [[0,4], [1,4], [2,4], [3,4], [0,5], [1,5], [2,5], [3,5], [4,5]],
+        locks: [{ tubeIndex: 5, until: { tube: 4, equals: ['G','G'] } }] },
+      // 11 — M3 — מעבדה + התקשות + מנעול-תנאי: מדף השחור (3) נפתח רק כששני ירוקים
+      // עומדים על מדף 2. שלושת הכחולים המתקשים נכנסים למעבדה פעם אחת ומתקשים בה
+      // כזרעים — הצהובים חייבים לבוא אליהם; הסגול נבנה ראשון וחונה על מדף
+      // הירוקים. מסלול יחיד.
+      { capacities: [4,4,4,4,4], optimalMoves: 15,
+        initial: [['Y','R','B1','Y'],['Y','B1','B1'],['B','R'],[],[]],
+        target:  [[],['P'],['G','G'],['K'],[]],
+        blenders: [4],
+        locks: [{ tubeIndex: 3, until: { tube: 2, equals: ['G','G'] } }] },
+      // 12 — six conversions, wider routing, and three flip valves that
       // repeatedly close the door behind each conversion.
       { capacities: [6,4,4,4,4,4,4,4], optimalMoves: 13,
         initial: [['R','R','R','R','R','R'],[],[],[],[],[],[],[]],
@@ -846,6 +1080,7 @@ const WORLDS = [
           { tubeIndex: 3, mode: 'flip', starts: 'in' },
           { tubeIndex: 4, mode: 'flip', starts: 'in' }
         ] }
+
     ]
   }
 ];

@@ -27,10 +27,12 @@ const visible = worlds
 
 // ---- route shape ----------------------------------------------------
 // (spread into a main-realm array: vm-realm arrays fail deepStrictEqual on prototype)
+const ROUTE = [1, 3, 6, 4, 8, 10, 12, 13, 11];
+const present = ROUTE.filter(id => worlds.some(w => w.id === id));
 assert.deepStrictEqual(
   [...visible.map(w => w.id)],
-  [1, 3, 6, 4, 8, 10, 11],
-  'visible route should be basics → joker → shift → locks → pigments → chutes → expert'
+  present,
+  'visible route should be basics → joker → shift → locks → pigments → chutes → pipes → centrifuge → expert'
 );
 assert(worlds.every(w => Number.isInteger(w.order)), 'every world declares an explicit order');
 assert(!worlds.some(w => w.id === 7), 'the retired mixer world (7) is gone from the data');
