@@ -293,11 +293,23 @@
   <script src="serial.js"></script>
   <script src="game.js"></script>
 
-  <!-- Service worker: enables offline play + instant repeat loads. -->
+  <!-- Service worker: enables offline play + instant repeat loads.
+       Updates: the worker uses skipWaiting + clients.claim, so when a new
+       version is installed it takes control at once; we then reload the page
+       one time so the fresh files show without a manual double-refresh. -->
   <script>
     if ('serviceWorker' in navigator) {
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController || reloaded) return;   // first install: nothing to refresh
+        reloaded = true;
+        window.location.reload();
+      });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js').catch(() => {});
+        navigator.serviceWorker.register('service-worker.js')
+          .then((reg) => { reg.update().catch(() => {}); })   // look for a newer version on every launch
+          .catch(() => {});
       });
     }
   </script>
